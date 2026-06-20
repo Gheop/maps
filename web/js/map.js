@@ -22,7 +22,7 @@ let vpw = 0, vph = 0, lmapW = 0, lmapH = 0;
 let dragDX = 0, dragDY = 0, panRaf = 0; // déplacement en cours : translate du conteneur, pas de re-tuilage
 let routeCoords = null;
 const markers = [];
-let hashTimer = 0, staleTimer = 0, rafPending = false;
+let hashTimer = 0, staleTimer = 0, idleTimer = 0, rafPending = false;
 
 export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a, zoomBarEl: zb, lmapEl: lm, maskEl: mk }) {
   mapEl = m; vbEl = v; ladderEl = l; attrEl = a; zoomBarEl = zb; lmapEl = lm; maskEl = mk;
@@ -178,7 +178,28 @@ function prefetch(z) {
       const key = `${layerId}:${z}/${x}/${y}`;
       if (prefetched.has(key)) continue;
       prefetched.add(key);
-      const im = new Image(); im.decoding = 'async'; im.src = LAYERS[layerId].url(x, y, z);
+      const im = new Image(); im.decoding = 'async'; im.fetchPriority = 'low'; im.src = LAYERS[layerId].url(x, y, z);
+    }
+  }
+}
+
+// Au repos, précharge un anneau de tuiles autour du viewport (priorité basse) :
+// un déplacement ultérieur tombe sur des tuiles déjà chargées -> pan instantané.
+function prefetchAround() {
+  if (!vpw || !vph) return;
+  const n = 2 ** zoom;
+  const ox = cx - vpw / 2, oy = cy - vph / 2, M = 3;
+  const x0 = Math.floor(ox / TILE) - M, y0 = Math.floor(oy / TILE) - M;
+  const x1 = Math.floor((ox + vpw) / TILE) + M, y1 = Math.floor((oy + vph) / TILE) + M;
+  if (prefetched.size > 800) prefetched.clear();
+  for (let x = x0; x <= x1; x++) {
+    for (let y = y0; y <= y1; y++) {
+      if (x < 0 || y < 0 || x >= n || y >= n) continue;
+      if (document.getElementById(`t${zoom}_${x}_${y}`)) continue; // déjà rendue
+      const key = `${layerId}:${zoom}/${x}/${y}`;
+      if (prefetched.has(key)) continue;
+      prefetched.add(key);
+      const im = new Image(); im.decoding = 'async'; im.fetchPriority = 'low'; im.src = LAYERS[layerId].url(x, y, zoom);
     }
   }
 }
@@ -226,6 +247,7 @@ function render() {
         img.className = 'tile';
         img.alt = '';
         img.decoding = 'async';
+        img.fetchPriority = 'high'; // tuiles visibles prioritaires sur les préchargements
         img.style.zIndex = '2';
         const url = LAYERS[layerId].url(x, y, zoom);
         let tries = 0, settled = false, fb = false;
@@ -275,6 +297,7 @@ function render() {
   drawOverlay();
   updateMinimap();
   scheduleHash();
+  clearTimeout(idleTimer); idleTimer = setTimeout(prefetchAround, 250); // anneau préchargé une fois posé
 }
 
 function drawOverlay() {
@@ -439,14 +462,14 @@ function bindPointer() {
     dragDX += e.clientX - lx; dragDY += e.clientY - ly;
     lx = e.clientX; ly = e.clientY;
     if (!panRaf) panRaf = requestAnimationFrame(panFrame);
-  });
+  }, { passive: true });
   const end = (e) => {
     pts.delete(e.pointerId);
     if (pts.size === 1) { const p = [...pts.values()][0]; lx = p.x; ly = p.y; pinch = 0; }
     else if (pts.size === 0) { if (panRaf) { cancelAnimationFrame(panRaf); panRaf = 0; } commitPan(); }
   };
-  vbEl.addEventListener('pointerup', end);
-  vbEl.addEventListener('pointercancel', end);
+  vbEl.addEventListener('pointerup', end, { passive: true });
+  vbEl.addEventListener('pointercancel', end, { passive: true });
   vbEl.addEventListener('dragstart', (e) => e.preventDefault());
   // clic droit : recentre sur le point cliqué (comme l'original)
   vbEl.addEventListener('contextmenu', (e) => {

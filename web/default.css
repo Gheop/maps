@@ -5,7 +5,7 @@ body { font: 14px/1.4 system-ui, sans-serif; }
 #viewbox { position: fixed; inset: 0; overflow: hidden; background: #e8e8e8; touch-action: none; cursor: grab; }
 #viewbox:active { cursor: grabbing; }
 #map { position: absolute; top: 0; left: 0; will-change: transform; }
-img.tile { position: absolute; width: 256px; height: 256px; user-select: none; -webkit-user-drag: none; opacity: 0; transition: opacity .15s linear; }
+img.tile { position: absolute; width: 256px; height: 256px; user-select: none; -webkit-user-drag: none; opacity: 0; transition: opacity .15s linear; contain: layout paint style; }
 img.tile.loaded, img.tile.stale, img.tile.fallback { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { img.tile { transition: none; } }
 .marker { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ef4444; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); z-index: 5; }
