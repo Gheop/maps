@@ -12,13 +12,13 @@ const LADDER = ['10000 km', '5000 km', '2000 km', '2000 km', '1000 km', '500 km'
 
 let mapEl, vbEl, ladderEl, attrEl, zoomBarEl, lmapEl, maskEl, lmapTilesEl, canvas, ctx;
 let lmapSig = '';
-const MINI_DZ = 4; // la minimap montre la zone 4 niveaux de zoom en dessous (rectangle bien visible)
+const MINI_DZ = 4; // la minimap montre la zone 4 niveaux en dessous (rectangle visible)
 let zoom = 2, layerId = 'plan', zoomMax = 19;
-let vpw = 0, vph = 0, tilesX = 0, tilesY = 0;
+let cx = 0, cy = 0; // pixel-monde du CENTRE du viewport au zoom courant (petit modèle, sans div géant)
+let vpw = 0, vph = 0;
 let routeCoords = null;
 const markers = [];
-let hashTimer = 0;
-let staleTimer = 0;
+let hashTimer = 0, staleTimer = 0, rafPending = false;
 
 export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a, zoomBarEl: zb, lmapEl: lm, maskEl: mk }) {
   mapEl = m; vbEl = v; ladderEl = l; attrEl = a; zoomBarEl = zb; lmapEl = lm; maskEl = mk;
@@ -40,40 +40,30 @@ export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a, zoomBarEl: 
 }
 
 function resize() {
-  const c = (vpw && vph) ? getView() : null; // centre courant avant redimensionnement
+  const c = vpw && vph ? getView() : null;
   vpw = vbEl.clientWidth; vph = vbEl.clientHeight;
-  tilesX = Math.ceil(vpw / TILE) + 1;
-  tilesY = Math.ceil(vph / TILE) + 1;
+  mapEl.style.width = vpw + 'px';
+  mapEl.style.height = vph + 'px';
   canvas.width = vpw; canvas.height = vph;
-  if (c) { // re-ancre le centre (sans vider les tuiles, déjà valides au même zoom)
-    mapEl.style.left = Math.round(vpw / 2 - lonToPx(c.lon, zoom)) + 'px';
-    mapEl.style.top = Math.round(vph / 2 - latToPx(c.lat, zoom)) + 'px';
-  }
+  if (c) { cx = lonToPx(c.lon, zoom); cy = latToPx(c.lat, zoom); }
   render();
 }
 
-function sizeWorld() {
-  const s = TILE * 2 ** zoom;
-  mapEl.style.width = mapEl.style.height = s + 'px';
-}
-
 function project(lat, lon) {
-  return { x: lonToPx(lon, zoom) + mapEl.offsetLeft, y: latToPx(lat, zoom) + mapEl.offsetTop };
+  return { x: lonToPx(lon, zoom) - (cx - vpw / 2), y: latToPx(lat, zoom) - (cy - vph / 2) };
+}
+function unproject(sx, sy) {
+  return { lat: pxToLat(sy - vph / 2 + cy, zoom), lon: pxToLon(sx - vpw / 2 + cx, zoom) };
 }
 
 export function getView() {
-  return {
-    lat: pxToLat(vph / 2 - mapEl.offsetTop, zoom),
-    lon: pxToLon(vpw / 2 - mapEl.offsetLeft, zoom),
-    zoom,
-  };
+  return { lat: pxToLat(cy, zoom), lon: pxToLon(cx, zoom), zoom };
 }
 
 export function setView(lat, lon, z = zoom) {
   zoom = clamp(Math.round(z), 0, zoomMax);
-  sizeWorld();
-  mapEl.style.left = Math.round(vpw / 2 - lonToPx(lon, zoom)) + 'px';
-  mapEl.style.top = Math.round(vph / 2 - latToPx(lat, zoom)) + 'px';
+  cx = lonToPx(lon, zoom);
+  cy = latToPx(lat, zoom);
   clearTiles();
   render();
   updateLadder();
@@ -87,39 +77,34 @@ export function fitBounds(s, w, n, e) {
   setView((s + n) / 2, (w + e) / 2, z);
 }
 
-// Applique le changement de zoom : charge les tuiles du nouveau niveau, en gardant
-// les tuiles déjà chargées (du niveau de départ) mises à l'échelle en fond.
-function commitZoom(z2, cx, cy) {
+// Change de zoom en gardant fixe le point géographique sous (sx, sy) écran.
+function commitZoom(z2, sx = vpw / 2, sy = vph / 2) {
   z2 = clamp(z2, 0, zoomMax);
   if (z2 === zoom) { render(); return; }
   removeStale();
   const fromZoom = zoom;
-  const f = 2 ** (z2 - zoom);
-  const left = Math.round((mapEl.offsetLeft - cx) * f + cx);
-  const top = Math.round((mapEl.offsetTop - cy) * f + cy);
+  const lon = pxToLon(sx - vpw / 2 + cx, zoom);
+  const lat = pxToLat(sy - vph / 2 + cy, zoom);
   zoom = z2;
-  sizeWorld();
-  mapEl.style.left = left + 'px';
-  mapEl.style.top = top + 'px';
+  cx = lonToPx(lon, zoom) - (sx - vpw / 2);
+  cy = latToPx(lat, zoom) - (sy - vph / 2);
   markStale(fromZoom);
   render();
   updateLadder();
 }
 
-// Zoom direct d'un cran (clavier, pinch) — un seul niveau, placeholder géré par commitZoom.
-function zoomInstant(delta, cx = vpw / 2, cy = vph / 2) {
-  commitZoom(zoom + delta, cx, cy);
-}
+// Zoom direct d'un cran (clavier, pinch).
+function zoomInstant(delta, sx = vpw / 2, sy = vph / 2) { commitZoom(zoom + delta, sx, sy); }
 
-// Zoom molette/trackpad : pendant la rafale on scale les tuiles en direct (transform,
-// sans recharger), puis on charge le niveau final une seule fois (debounce).
-let wheelTargetF = null, wheelOrigin = null, wheelTimer = 0;
-function zoomWheel(deltaY, cx, cy) {
+// Zoom molette/trackpad : scale en direct (transform) pendant la rafale, une seule
+// recharge de tuiles au repos (debounce) -> fluide même en enchaînant les crans.
+let wheelTargetF = null, wheelAnchor = null, wheelTimer = 0;
+function zoomWheel(deltaY, sx, sy) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (wheelTargetF === null) {
     wheelTargetF = zoom;
-    wheelOrigin = { mx: cx - mapEl.offsetLeft, my: cy - mapEl.offsetTop };
-    if (!reduce) mapEl.style.transformOrigin = wheelOrigin.mx + 'px ' + wheelOrigin.my + 'px';
+    wheelAnchor = { sx, sy };
+    if (!reduce) mapEl.style.transformOrigin = sx + 'px ' + sy + 'px';
   }
   wheelTargetF = clamp(wheelTargetF - deltaY * 0.01, 0, zoomMax);
   if (!reduce) mapEl.style.transform = `scale(${2 ** (wheelTargetF - zoom)})`;
@@ -128,36 +113,34 @@ function zoomWheel(deltaY, cx, cy) {
 }
 function commitWheel() {
   const target = clamp(Math.round(wheelTargetF), 0, zoomMax);
-  const cx = wheelOrigin.mx + mapEl.offsetLeft;
-  const cy = wheelOrigin.my + mapEl.offsetTop;
+  const a = wheelAnchor;
   mapEl.style.transform = '';
   mapEl.style.transformOrigin = '';
-  wheelTargetF = null; wheelOrigin = null;
-  commitZoom(target, cx, cy);
+  wheelTargetF = null; wheelAnchor = null;
+  commitZoom(target, a.sx, a.sy);
 }
 
 function clearTiles() {
   for (const img of [...mapEl.querySelectorAll('img.tile')]) img.remove();
 }
 
-let rafPending = false;
 function scheduleRender() {
   if (rafPending) return;
   rafPending = true;
   requestAnimationFrame(() => { rafPending = false; render(); });
 }
 
-// Garde les tuiles chargées du niveau de départ, mises à l'échelle pour couvrir leur
-// zone au nouveau zoom, comme fond sous les nouvelles tuiles qui se chargent.
+// Garde les tuiles chargées du niveau de départ, mises à l'échelle en fond.
 function markStale(fromZoom) {
+  const ox = cx - vpw / 2, oy = cy - vph / 2;
   for (const img of [...mapEl.querySelectorAll('img.tile')]) {
     const [tz, tx, ty] = img.id.slice(1).split('_').map(Number);
     if (tz !== fromZoom) continue;
-    if (!img.classList.contains('loaded')) { img.remove(); continue; } // pas chargée → mauvais fond
+    if (!img.classList.contains('loaded')) { img.remove(); continue; }
     const g = 2 ** (zoom - tz);
-    img.style.left = tx * TILE * g + 'px';
-    img.style.top = ty * TILE * g + 'px';
-    img.style.width = img.style.height = TILE * g + 'px';
+    img.style.left = (tx * TILE * g - ox) + 'px';
+    img.style.top = (ty * TILE * g - oy) + 'px';
+    img.style.width = img.style.height = (TILE * g) + 'px';
     img.style.zIndex = '1';
     img.classList.add('stale');
   }
@@ -171,43 +154,44 @@ function removeStale() {
 function render() {
   if (!mapEl) return;
   const n = 2 ** zoom;
-  const x0 = Math.floor(-mapEl.offsetLeft / TILE) - 1;
-  const y0 = Math.floor(-mapEl.offsetTop / TILE) - 1;
-  const x1 = x0 + tilesX + 1, y1 = y0 + tilesY + 1;
-  const frag = document.createDocumentFragment();
+  const ox = cx - vpw / 2, oy = cy - vph / 2; // pixel-monde du coin haut-gauche
+  const x0 = Math.floor(ox / TILE) - 1, y0 = Math.floor(oy / TILE) - 1;
+  const x1 = Math.floor((ox + vpw) / TILE) + 1, y1 = Math.floor((oy + vph) / TILE) + 1;
+  const need = new Set();
   let pending = 0;
   const done = () => { if (--pending <= 0) removeStale(); };
   for (let x = x0; x <= x1; x++) {
     for (let y = y0; y <= y1; y++) {
       if (x < 0 || y < 0 || x >= n || y >= n) continue;
       const id = `t${zoom}_${x}_${y}`;
-      if (document.getElementById(id)) continue;
-      const img = new Image();
-      img.id = id;
-      img.className = 'tile';
-      img.alt = '';
-      img.decoding = 'async';
-      img.style.left = x * TILE + 'px';
-      img.style.top = y * TILE + 'px';
-      img.style.zIndex = '2';
-      pending++;
-      img.addEventListener('load', () => { img.classList.add('loaded'); done(); });
-      img.addEventListener('error', () => { img.style.visibility = 'hidden'; done(); });
-      img.src = LAYERS[layerId].url(x, y, zoom);
-      frag.appendChild(img);
+      need.add(id);
+      let img = document.getElementById(id);
+      if (!img) {
+        img = new Image();
+        img.id = id;
+        img.className = 'tile';
+        img.alt = '';
+        img.decoding = 'async';
+        img.style.zIndex = '2';
+        pending++;
+        img.addEventListener('load', () => { img.classList.add('loaded'); done(); });
+        img.addEventListener('error', () => { img.style.visibility = 'hidden'; done(); });
+        img.src = LAYERS[layerId].url(x, y, zoom);
+        mapEl.appendChild(img);
+      }
+      img.style.left = (x * TILE - ox) + 'px';
+      img.style.top = (y * TILE - oy) + 'px';
     }
   }
-  mapEl.appendChild(frag);
-  // élague les tuiles du zoom courant hors écran (laisse les placeholders 'stale')
   for (const img of [...mapEl.querySelectorAll('img.tile:not(.stale)')]) {
-    const [tz, tx, ty] = img.id.slice(1).split('_').map(Number);
-    if (tz === zoom && (tx < x0 || tx > x1 || ty < y0 || ty > y1)) img.remove();
+    if (!need.has(img.id)) img.remove();
   }
-  if (pending === 0) removeStale();                              // tout était déjà en cache
-  else { clearTimeout(staleTimer); staleTimer = setTimeout(removeStale, 1000); } // filet de sécurité
+  if (pending === 0) removeStale();
+  else { clearTimeout(staleTimer); staleTimer = setTimeout(removeStale, 1000); }
   for (const mk of markers) {
-    mk.el.style.left = lonToPx(mk.lon, zoom) + 'px';
-    mk.el.style.top = latToPx(mk.lat, zoom) + 'px';
+    const p = project(mk.lat, mk.lon);
+    mk.el.style.left = p.x + 'px';
+    mk.el.style.top = p.y + 'px';
   }
   drawOverlay();
   updateZoomBar();
@@ -239,10 +223,11 @@ export function clearRoute() { routeCoords = null; drawOverlay(); }
 export function addMarker(lat, lon) {
   const el = document.createElement('div');
   el.className = 'marker';
-  el.style.left = lonToPx(lon, zoom) + 'px';
-  el.style.top = latToPx(lat, zoom) + 'px';
   mapEl.appendChild(el);
   const mk = { lat, lon, el, remove() { el.remove(); const i = markers.indexOf(mk); if (i >= 0) markers.splice(i, 1); } };
+  const p = project(lat, lon);
+  el.style.left = p.x + 'px';
+  el.style.top = p.y + 'px';
   markers.push(mk);
   return mk;
 }
@@ -251,8 +236,7 @@ export function setLayer(id) {
   if (!LAYERS[id]) return;
   layerId = id;
   zoomMax = LAYERS[id].max;
-  if (zoom > zoomMax) zoom = zoomMax;
-  sizeWorld();
+  if (zoom > zoomMax) commitZoom(zoomMax);
   clearTiles();
   render();
   updateLadder();
@@ -272,7 +256,7 @@ function buildZoomBar() {
     d.style.width = (z + 2) + 'px';
     d.dataset.z = String(z);
     d.title = 'zoom ' + z;
-    d.addEventListener('click', () => { const v = getView(); setView(v.lat, v.lon, z); });
+    d.addEventListener('click', () => commitZoom(z));
     zoomBarEl.appendChild(d);
   }
 }
@@ -285,12 +269,12 @@ function updateZoomBar() {
   }
 }
 
-// --- Minimap : vue régionale (zoom courant - MINI_DZ) centrée + rectangle de cadrage ---
+// --- Minimap régionale (zoom - MINI_DZ) centrée + rectangle de cadrage ---
 function bindMinimap() {
   if (!lmapEl) return;
   lmapTilesEl = document.createElement('div');
   lmapTilesEl.id = 'lmap_tiles';
-  lmapEl.insertBefore(lmapTilesEl, lmapEl.firstChild); // sous le rectangle (#mask_lmap)
+  lmapEl.insertBefore(lmapTilesEl, lmapEl.firstChild);
   lmapEl.addEventListener('click', (e) => {
     const r = lmapEl.getBoundingClientRect();
     const W = lmapEl.clientWidth, H = lmapEl.clientHeight;
@@ -305,13 +289,13 @@ function updateMinimap() {
   if (!lmapEl || !maskEl || !lmapTilesEl) return;
   const W = lmapEl.clientWidth, H = lmapEl.clientHeight;
   const mz = clamp(zoom - MINI_DZ, 0, zoomMax);
-  const c = getView();
-  const ox = lonToPx(c.lon, mz) - W / 2, oy = latToPx(c.lat, mz) - H / 2;
+  const ox = lonToPx(pxToLon(cx, zoom), mz) - W / 2;
+  const oy = latToPx(pxToLat(cy, zoom), mz) - H / 2;
   const n = 2 ** mz;
   const x0 = Math.floor(ox / TILE), x1 = Math.floor((ox + W) / TILE);
   const y0 = Math.floor(oy / TILE), y1 = Math.floor((oy + H) / TILE);
   const sig = `${mz}:${x0},${x1},${y0},${y1}:${layerId}`;
-  if (sig !== lmapSig) { // ne reconstruit les <img> que si la plage de tuiles change
+  if (sig !== lmapSig) {
     lmapSig = sig;
     lmapTilesEl.textContent = '';
     for (let x = x0; x <= x1; x++) {
@@ -328,7 +312,7 @@ function updateMinimap() {
       }
     }
   }
-  for (const img of lmapTilesEl.children) { // repositionne à chaque déplacement
+  for (const img of lmapTilesEl.children) {
     img.style.left = (img.dataset.tx * TILE - ox) + 'px';
     img.style.top = (img.dataset.ty * TILE - oy) + 'px';
   }
@@ -348,22 +332,16 @@ function scheduleHash() {
   }, 300);
 }
 
-function pan(dx, dy) {
-  mapEl.style.left = mapEl.offsetLeft + dx + 'px';
-  mapEl.style.top = mapEl.offsetTop + dy + 'px';
-  scheduleRender();
-}
-
 function twoDist(p) { const [a, b] = [...p.values()]; return Math.hypot(a.x - b.x, a.y - b.y); }
 function twoMid(p) { const [a, b] = [...p.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
 
 function bindPointer() {
   const pts = new Map();
-  let startL = 0, startT = 0, sx = 0, sy = 0, pinch = 0;
+  let lx = 0, ly = 0, pinch = 0;
   vbEl.addEventListener('pointerdown', (e) => {
     vbEl.setPointerCapture(e.pointerId);
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pts.size === 1) { sx = e.clientX; sy = e.clientY; startL = mapEl.offsetLeft; startT = mapEl.offsetTop; }
+    if (pts.size === 1) { lx = e.clientX; ly = e.clientY; }
     else if (pts.size === 2) pinch = twoDist(pts);
   });
   vbEl.addEventListener('pointermove', (e) => {
@@ -378,23 +356,24 @@ function bindPointer() {
       }
       return;
     }
-    mapEl.style.left = startL + (e.clientX - sx) + 'px';
-    mapEl.style.top = startT + (e.clientY - sy) + 'px';
+    cx -= e.clientX - lx;
+    cy -= e.clientY - ly;
+    lx = e.clientX; ly = e.clientY;
     scheduleRender();
   });
   const end = (e) => {
     pts.delete(e.pointerId);
-    if (pts.size === 1) { const p = [...pts.values()][0]; sx = p.x; sy = p.y; startL = mapEl.offsetLeft; startT = mapEl.offsetTop; pinch = 0; }
+    if (pts.size === 1) { const p = [...pts.values()][0]; lx = p.x; ly = p.y; pinch = 0; }
   };
   vbEl.addEventListener('pointerup', end);
   vbEl.addEventListener('pointercancel', end);
   vbEl.addEventListener('dragstart', (e) => e.preventDefault());
-  // clic droit : recentre la carte sur le point cliqué (comme l'original)
+  // clic droit : recentre sur le point cliqué (comme l'original)
   vbEl.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const r = vbEl.getBoundingClientRect();
-    mapEl.style.left = mapEl.offsetLeft + (vpw / 2 - (e.clientX - r.left)) + 'px';
-    mapEl.style.top = mapEl.offsetTop + (vph / 2 - (e.clientY - r.top)) + 'px';
+    cx += (e.clientX - r.left) - vpw / 2;
+    cy += (e.clientY - r.top) - vph / 2;
     render();
   });
 }
@@ -413,10 +392,10 @@ function bindKeys() {
     switch (e.key) {
       case '+': case '=': zoomInstant(1); break;
       case '-': zoomInstant(-1); break;
-      case 'ArrowLeft': pan(100, 0); break;
-      case 'ArrowRight': pan(-100, 0); break;
-      case 'ArrowUp': pan(0, 100); break;
-      case 'ArrowDown': pan(0, -100); break;
+      case 'ArrowLeft': cx -= 100; scheduleRender(); break;
+      case 'ArrowRight': cx += 100; scheduleRender(); break;
+      case 'ArrowUp': cy -= 100; scheduleRender(); break;
+      case 'ArrowDown': cy += 100; scheduleRender(); break;
       default: return;
     }
     e.preventDefault();

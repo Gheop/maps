@@ -16,15 +16,14 @@
   <div id="controls">
     <div id="search-box">
       <input id="s" type="search" placeholder="Rechercher un lieu…" autocomplete="off">
-      <button id="bs" type="button" title="Rechercher">⌕</button>
+      <button id="bs" type="button" title="Rechercher"></button>
+      <button id="route-toggle" type="button" title="Itinéraire"></button>
     </div>
-    <details id="route-panel">
-      <summary>Itinéraire</summary>
-      <input id="dep" type="text" placeholder="Départ" autocomplete="off">
-      <input id="arr" type="text" placeholder="Arrivée" autocomplete="off">
-      <button id="route-btn" type="button">Calculer</button>
-      <div id="route-out"></div>
-    </details>
+    <div id="route-row" hidden>
+      <input id="arr" type="search" placeholder="Arrivée" autocomplete="off">
+      <button id="swap" type="button" title="Inverser départ / arrivée">⇅</button>
+    </div>
+    <div id="route-out"></div>
   </div>
 
   <div id="layers">

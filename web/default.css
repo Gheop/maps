@@ -15,11 +15,14 @@ canvas.overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-in
 #search-box { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); display: flex; background: #fff; border: 1px solid #bbb; border-radius: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.3); overflow: hidden; z-index: 10; }
 #s { border: 0; padding: 8px 14px; width: 260px; font: inherit; outline: none; background: transparent; }
 #bs { border: 0; border-left: 1px solid #eee; width: 38px; cursor: pointer; color: transparent; background: #fff url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAARCAYAAADdRIy+AAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAAd0SU1FB9kCBxQkAPQ1ZpQAAAGrSURBVDjLjdRNiE5xFAbw372v14zvkEGsjLD20UghKTay1uykyEIWSpY2Stmp2dhMoWQ1USYbScrKhpKyGkVDNDaGfM21ed5ct/cOp/7dc+89/+c8z/k/9xYoUPkTu7EXm7EQM3iO+3jfp/6v6NTyJbiEY1iE13iXfB+O4BdeoAxo0Q+0yLqGCRxFt1GzChfDctR/xDncxY5ak7KW9+I8JjE8H9iagJ36R9Nek5u43FZUYicGcCv3ZQtYhTk8xFYsbgPcgGnM1jb1A+vFMwxifRtgmdOba1FR1WrhR8MhRRPwA9ZFdtlgVo9ewy34mn0a9inK+KrC4TA9EZvUZe7BweQHAvipoaKABXiVNYoHmeV1PMZbbMcmnIlHh/JuPHabCc7PurS1MfU4VmN5vozjYSdgE7iBFdlzG/u1zGlbvoaleIKnkTaEQ9iIjznhQVyNoiuYwli/wXdwEiOxU5W5vsQdPMLpzLMbT47F7NO4UPRhW9V+FgP4jO+NxiM4G6azebYMk50W+WWG/C12KRpefBO2u7AyDbuY6sxj5uYqatcCX3AvhzgcX479BrxnZh85IOwcAAAAAElFTkSuQmCC") no-repeat center / 16px; }
-#route-panel { position: fixed; top: 54px; left: 50%; transform: translateX(-50%); width: 300px; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.3); padding: 6px 10px; z-index: 10; }
-#route-btn { border: 0; background: #2563eb; color: #fff; padding: 8px 12px; cursor: pointer; font: inherit; border-radius: 4px; }
-#route-panel summary { cursor: pointer; user-select: none; }
-#route-panel input { display: block; width: 100%; margin: 6px 0; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font: inherit; }
-#route-out { margin-top: 6px; font-weight: 600; min-height: 1em; }
+#route-toggle { border: 0; border-left: 1px solid #eee; width: 38px; cursor: pointer; color: transparent; background: #fff url('/route.png') no-repeat center / 18px; }
+#route-toggle.active { background-color: #dbeafe; }
+#route-row { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); display: flex; background: #fff; border: 1px solid #bbb; border-radius: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.3); overflow: hidden; z-index: 10; }
+#route-row[hidden] { display: none; }
+#arr { border: 0; padding: 8px 14px; width: 260px; font: inherit; outline: none; background: transparent; }
+#swap { border: 0; border-left: 1px solid #eee; width: 38px; cursor: pointer; background: #fff; color: #2563eb; font-size: 16px; line-height: 1; }
+#route-out { position: fixed; top: 94px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.92); border-radius: 4px; padding: 3px 12px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.3); z-index: 10; }
+#route-out:empty { display: none; }
 
 #layers { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
 .layer-btn { border: 0; background: #fff; padding: 6px 10px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
