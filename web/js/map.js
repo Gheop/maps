@@ -14,9 +14,12 @@ const BLANK_PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEA
 let mapEl, vbEl, ladderEl, attrEl, zoomBarEl, lmapEl, maskEl, lmapTilesEl, canvas, ctx;
 let lmapSig = '';
 const MINI_DZ = 4; // la minimap montre la zone 4 niveaux en dessous (rectangle visible)
+const PAN_COMMIT = 220; // déplacement (px) au-delà duquel on refait les tuiles (< 256 = marge d'une tuile)
+const reduceMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
 let zoom = 2, layerId = 'plan', zoomMax = 19;
 let cx = 0, cy = 0; // pixel-monde du CENTRE du viewport au zoom courant (petit modèle, sans div géant)
-let vpw = 0, vph = 0;
+let vpw = 0, vph = 0, lmapW = 0, lmapH = 0;
+let dragDX = 0, dragDY = 0, panRaf = 0; // déplacement en cours : translate du conteneur, pas de re-tuilage
 let routeCoords = null;
 const markers = [];
 let hashTimer = 0, staleTimer = 0, rafPending = false;
@@ -44,6 +47,7 @@ export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a, zoomBarEl: 
 function resize() {
   const c = vpw && vph ? getView() : null;
   vpw = vbEl.clientWidth; vph = vbEl.clientHeight;
+  if (lmapEl) { lmapW = lmapEl.clientWidth; lmapH = lmapEl.clientHeight; } // mis en cache : plus de reflow par frame
   mapEl.style.width = vpw + 'px';
   mapEl.style.height = vph + 'px';
   canvas.width = vpw; canvas.height = vph;
@@ -69,6 +73,7 @@ export function setView(lat, lon, z = zoom) {
   clearTiles();
   render();
   updateLadder();
+  updateZoomBar();
 }
 
 export function fitBounds(s, w, n, e) {
@@ -93,6 +98,7 @@ function commitZoom(z2, sx = vpw / 2, sy = vph / 2) {
   markStale(fromZoom);
   render();
   updateLadder();
+  updateZoomBar();
 }
 
 // Zoom direct d'un cran (clavier, pinch).
@@ -102,16 +108,19 @@ function zoomInstant(delta, sx = vpw / 2, sy = vph / 2) { commitZoom(zoom + delt
 // recharge de tuiles au repos (debounce) -> fluide même en enchaînant les crans.
 let wheelTargetF = null, wheelAnchor = null, wheelTimer = 0;
 function zoomWheel(deltaY, sx, sy) {
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduce = reduceMotionMQ.matches;
   if (wheelTargetF === null) {
     wheelTargetF = zoom;
     wheelAnchor = { sx, sy };
     if (!reduce) mapEl.style.transformOrigin = sx + 'px ' + sy + 'px';
   }
+  const prev = Math.round(wheelTargetF);
   wheelTargetF = clamp(wheelTargetF - deltaY * 0.01, 0, zoomMax);
+  const tgt = Math.round(wheelTargetF);
+  if (tgt !== prev) prefetch(tgt); // les tuiles du niveau visé chargent pendant le scroll
   if (!reduce) mapEl.style.transform = `scale(${2 ** (wheelTargetF - zoom)})`;
   clearTimeout(wheelTimer);
-  wheelTimer = setTimeout(commitWheel, 140);
+  wheelTimer = setTimeout(commitWheel, 90);
 }
 function commitWheel() {
   const target = clamp(Math.round(wheelTargetF), 0, zoomMax);
@@ -130,6 +139,48 @@ function scheduleRender() {
   if (rafPending) return;
   rafPending = true;
   requestAnimationFrame(() => { rafPending = false; render(); });
+}
+
+// --- Déplacement : on translate le conteneur (compositeur GPU), aucun travail JS par frame.
+// On ne refait les tuiles (render) que lorsque le déplacement dépasse une marge.
+function applyDragTransform() {
+  const t = `translate3d(${dragDX}px,${dragDY}px,0)`;
+  mapEl.style.transform = t;
+  if (canvas) canvas.style.transform = t;
+}
+function commitPan() {
+  if (!dragDX && !dragDY) { mapEl.style.transform = ''; if (canvas) canvas.style.transform = ''; return; }
+  cx -= dragDX; cy -= dragDY;
+  dragDX = dragDY = 0;
+  mapEl.style.transform = ''; if (canvas) canvas.style.transform = '';
+  render();
+}
+function panFrame() {
+  panRaf = 0;
+  if (Math.abs(dragDX) >= PAN_COMMIT || Math.abs(dragDY) >= PAN_COMMIT) commitPan();
+  else applyDragTransform();
+}
+
+// Précharge (cache navigateur) les tuiles du niveau visé pendant le geste de zoom,
+// pour qu'elles soient déjà là quand on s'arrête -> tuiles nettes quasi instantanées.
+const prefetched = new Set();
+function prefetch(z) {
+  z = clamp(Math.round(z), 0, zoomMax);
+  const n = 2 ** z;
+  const lon = pxToLon(cx, zoom), lat = pxToLat(cy, zoom);
+  const ox = lonToPx(lon, z) - vpw / 2, oy = latToPx(lat, z) - vph / 2;
+  const x0 = Math.floor(ox / TILE), y0 = Math.floor(oy / TILE);
+  const x1 = Math.floor((ox + vpw) / TILE), y1 = Math.floor((oy + vph) / TILE);
+  if (prefetched.size > 800) prefetched.clear();
+  for (let x = x0; x <= x1; x++) {
+    for (let y = y0; y <= y1; y++) {
+      if (x < 0 || y < 0 || x >= n || y >= n) continue;
+      const key = `${layerId}:${z}/${x}/${y}`;
+      if (prefetched.has(key)) continue;
+      prefetched.add(key);
+      const im = new Image(); im.decoding = 'async'; im.src = LAYERS[layerId].url(x, y, z);
+    }
+  }
 }
 
 // Garde les tuiles chargées du niveau de départ, mises à l'échelle en fond.
@@ -220,7 +271,6 @@ function render() {
     mk.el.style.top = p.y + 'px';
   }
   drawOverlay();
-  updateZoomBar();
   updateMinimap();
   scheduleHash();
 }
@@ -267,6 +317,7 @@ export function setLayer(id) {
   clearTiles();
   render();
   updateLadder();
+  updateZoomBar();
   if (attrEl) attrEl.innerHTML = LAYERS[id].attr;
   scheduleHash(); // garde le calque dans l'URL (rafraîchissement + partage)
 }
@@ -313,7 +364,7 @@ function bindMinimap() {
 }
 function updateMinimap() {
   if (!lmapEl || !maskEl || !lmapTilesEl) return;
-  const W = lmapEl.clientWidth, H = lmapEl.clientHeight;
+  const W = lmapW, H = lmapH; // en cache (lus au resize) : pas de reflow synchrone
   const mz = clamp(zoom - MINI_DZ, 0, zoomMax);
   const ox = lonToPx(pxToLon(cx, zoom), mz) - W / 2;
   const oy = latToPx(pxToLat(cy, zoom), mz) - H / 2;
@@ -368,7 +419,7 @@ function bindPointer() {
     vbEl.setPointerCapture(e.pointerId);
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 1) { lx = e.clientX; ly = e.clientY; }
-    else if (pts.size === 2) pinch = twoDist(pts);
+    else if (pts.size === 2) { if (panRaf) { cancelAnimationFrame(panRaf); panRaf = 0; } commitPan(); pinch = twoDist(pts); }
   });
   vbEl.addEventListener('pointermove', (e) => {
     if (!pts.has(e.pointerId)) return;
@@ -376,20 +427,21 @@ function bindPointer() {
     if (pts.size >= 2) {
       const d = twoDist(pts);
       if (pinch && Math.abs(Math.log2(d / pinch)) >= 1) {
-        const m = twoMid(pts), r = vbEl.getBoundingClientRect();
-        zoomInstant(d > pinch ? 1 : -1, m.x - r.left, m.y - r.top);
+        const m = twoMid(pts);
+        zoomInstant(d > pinch ? 1 : -1, m.x, m.y);
         pinch = d;
       }
       return;
     }
-    cx -= e.clientX - lx;
-    cy -= e.clientY - ly;
+    // accumule le déplacement écran ; le rendu (translate) se fait une fois par frame
+    dragDX += e.clientX - lx; dragDY += e.clientY - ly;
     lx = e.clientX; ly = e.clientY;
-    scheduleRender();
+    if (!panRaf) panRaf = requestAnimationFrame(panFrame);
   });
   const end = (e) => {
     pts.delete(e.pointerId);
     if (pts.size === 1) { const p = [...pts.values()][0]; lx = p.x; ly = p.y; pinch = 0; }
+    else if (pts.size === 0) { if (panRaf) { cancelAnimationFrame(panRaf); panRaf = 0; } commitPan(); }
   };
   vbEl.addEventListener('pointerup', end);
   vbEl.addEventListener('pointercancel', end);
@@ -397,9 +449,8 @@ function bindPointer() {
   // clic droit : recentre sur le point cliqué (comme l'original)
   vbEl.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    const r = vbEl.getBoundingClientRect();
-    cx += (e.clientX - r.left) - vpw / 2;
-    cy += (e.clientY - r.top) - vph / 2;
+    cx += e.clientX - vpw / 2;
+    cy += e.clientY - vph / 2;
     render();
   });
 }
@@ -407,8 +458,7 @@ function bindPointer() {
 function bindWheel() {
   vbEl.addEventListener('wheel', (e) => {
     e.preventDefault();
-    const r = vbEl.getBoundingClientRect();
-    zoomWheel(e.deltaY, e.clientX - r.left, e.clientY - r.top);
+    zoomWheel(e.deltaY, e.clientX, e.clientY);
   }, { passive: false });
 }
 
