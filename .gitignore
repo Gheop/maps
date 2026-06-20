@@ -1,0 +1,14 @@
+# Go
+/server/maps
+*.test
+*.out
+
+# build
+/dist/
+/tmp/
+
+# éditeurs / OS
+.DS_Store
+*~
+.idea/
+.vscode/
