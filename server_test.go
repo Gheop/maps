@@ -27,6 +27,9 @@ func TestHealthz(t *testing.T) {
 	if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
 		t.Fatalf("nosniff header = %q", got)
 	}
+	if got := rec.Header().Get("Referrer-Policy"); got != "strict-origin-when-cross-origin" {
+		t.Fatalf("referrer-policy header = %q", got)
+	}
 }
 
 func TestServesIndex(t *testing.T) {
