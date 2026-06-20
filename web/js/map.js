@@ -389,6 +389,14 @@ function bindPointer() {
   vbEl.addEventListener('pointerup', end);
   vbEl.addEventListener('pointercancel', end);
   vbEl.addEventListener('dragstart', (e) => e.preventDefault());
+  // clic droit : recentre la carte sur le point cliqué (comme l'original)
+  vbEl.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const r = vbEl.getBoundingClientRect();
+    mapEl.style.left = mapEl.offsetLeft + (vpw / 2 - (e.clientX - r.left)) + 'px';
+    mapEl.style.top = mapEl.offsetTop + (vph / 2 - (e.clientY - r.top)) + 'px';
+    render();
+  });
 }
 
 function bindWheel() {
