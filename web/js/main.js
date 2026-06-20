@@ -1,4 +1,4 @@
-import { initMap, setLayer, clearRoute } from './map.js';
+import { initMap, setLayer, getLayer, clearRoute } from './map.js';
 import { searchPlace } from './search.js';
 import { computeRoute } from './route.js';
 import { initGeo } from './geo.js';
@@ -16,17 +16,22 @@ const curName = $('layers-current-name');
 const curThumb = $('layers-current-thumb');
 const layersList = $('layers-list');
 const openLayers = (open) => { layersEl.classList.toggle('open', open); layersList.hidden = !open; };
+function syncLayerUI(id) { // reflète le calque courant (peut venir de l'URL) sur le bouton + masque son entrée dans la liste
+  const btn = layersList.querySelector(`button[data-layer="${id}"]`);
+  if (!btn) return;
+  curName.textContent = btn.querySelector('.name').textContent;
+  curThumb.dataset.layer = id;
+  layersList.querySelectorAll('button[data-layer]').forEach((x) => { x.hidden = x.dataset.layer === id; });
+}
 $('layers-current').addEventListener('click', () => openLayers(layersList.hidden));
 layersList.querySelectorAll('button[data-layer]').forEach((b) => {
   b.addEventListener('click', () => {
     setLayer(b.dataset.layer);
-    curName.textContent = b.querySelector('.name').textContent;
-    curThumb.dataset.layer = b.dataset.layer;
-    layersList.querySelectorAll('button[data-layer]').forEach((x) => { x.hidden = x.dataset.layer === b.dataset.layer; });
+    syncLayerUI(b.dataset.layer);
     openLayers(false);
   });
 });
-layersList.querySelector('button[data-layer="plan"]').hidden = true; // calque courant masqué dans la liste
+syncLayerUI(getLayer()); // état initial : calque éventuellement lu depuis le hash
 document.addEventListener('click', (e) => { if (!layersEl.contains(e.target)) openLayers(false); }); // referme au clic ailleurs
 
 // Recherche / itinéraire (champ recherche = départ en mode itinéraire)

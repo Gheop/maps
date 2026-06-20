@@ -34,8 +34,9 @@ export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a, zoomBarEl: 
   bindPointer();
   bindWheel();
   bindKeys();
-  if (attrEl) attrEl.innerHTML = LAYERS[layerId].attr;
   const h = parseHash(location.hash);
+  if (h && h.layer && LAYERS[h.layer]) { layerId = h.layer; zoomMax = LAYERS[h.layer].max; buildZoomBar(); }
+  if (attrEl) attrEl.innerHTML = LAYERS[layerId].attr;
   if (h) setView(h.lat, h.lon, h.zoom);
   else setView(46.6, 1.88, 6);
 }
@@ -267,7 +268,10 @@ export function setLayer(id) {
   render();
   updateLadder();
   if (attrEl) attrEl.innerHTML = LAYERS[id].attr;
+  scheduleHash(); // garde le calque dans l'URL (rafraîchissement + partage)
 }
+
+export function getLayer() { return layerId; }
 
 function updateLadder() { if (ladderEl) ladderEl.textContent = LADDER[zoom] || ''; }
 
@@ -350,7 +354,7 @@ function scheduleHash() {
   clearTimeout(hashTimer);
   hashTimer = setTimeout(() => {
     const v = getView();
-    history.replaceState(null, '', formatHash(v.zoom, v.lat, v.lon));
+    history.replaceState(null, '', formatHash(layerId, v.zoom, v.lat, v.lon));
   }, 300);
 }
 
