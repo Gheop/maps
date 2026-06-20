@@ -154,6 +154,7 @@ function commitPan() {
   dragDX = dragDY = 0;
   mapEl.style.transform = ''; if (canvas) canvas.style.transform = '';
   render();
+  prefetchAround(); // précharge le bord d'attaque pour rester chargé en pan continu (dédupliqué)
 }
 function panFrame() {
   panRaf = 0;
@@ -471,6 +472,8 @@ function bindPointer() {
   vbEl.addEventListener('pointerup', end, { passive: true });
   vbEl.addEventListener('pointercancel', end, { passive: true });
   vbEl.addEventListener('dragstart', (e) => e.preventDefault());
+  // double-clic : zoom sur le point cliqué (shift = dézoom) — action la plus fréquente
+  vbEl.addEventListener('dblclick', (e) => { e.preventDefault(); zoomInstant(e.shiftKey ? -1 : 1, e.clientX, e.clientY); });
   // clic droit : recentre sur le point cliqué (comme l'original)
   vbEl.addEventListener('contextmenu', (e) => {
     e.preventDefault();
