@@ -236,7 +236,8 @@ export function setLayer(id) {
   if (!LAYERS[id]) return;
   layerId = id;
   zoomMax = LAYERS[id].max;
-  if (zoom > zoomMax) commitZoom(zoomMax);
+  buildZoomBar();
+  if (zoom > zoomMax) { const c = getView(); zoom = zoomMax; cx = lonToPx(c.lon, zoom); cy = latToPx(c.lat, zoom); }
   clearTiles();
   render();
   updateLadder();
@@ -249,10 +250,10 @@ function updateLadder() { if (ladderEl) ladderEl.textContent = LADDER[zoom] || '
 function buildZoomBar() {
   if (!zoomBarEl) return;
   zoomBarEl.textContent = '';
-  for (let z = 20; z >= 0; z--) {
+  for (let z = zoomMax; z >= 0; z--) { // sommet = max de la couche (pas de créneau vide en haut)
     const d = document.createElement('div');
     d.className = 'pz';
-    d.style.top = (20 - z) * 9 + 'px';
+    d.style.top = (zoomMax - z) * 9 + 'px';
     d.style.width = (z + 2) + 'px';
     d.dataset.z = String(z);
     d.title = 'zoom ' + z;
@@ -262,11 +263,7 @@ function buildZoomBar() {
 }
 function updateZoomBar() {
   if (!zoomBarEl) return;
-  for (const d of zoomBarEl.children) {
-    const z = +d.dataset.z;
-    d.style.display = z <= zoomMax ? 'block' : 'none';
-    d.style.opacity = z <= zoom ? '1' : '.4';
-  }
+  for (const d of zoomBarEl.children) d.style.opacity = +d.dataset.z <= zoom ? '1' : '.4';
 }
 
 // --- Minimap régionale (zoom - MINI_DZ) centrée + rectangle de cadrage ---
