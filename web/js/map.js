@@ -213,6 +213,7 @@ function render() {
   const need = new Set();
   let pending = 0;
   const done = () => { if (--pending <= 0) removeStale(); };
+  const frag = document.createDocumentFragment(); // insertion groupée -> une seule passe de layout
   for (let x = x0; x <= x1; x++) {
     for (let y = y0; y <= y1; y++) {
       if (x < 0 || y < 0 || x >= n || y >= n) continue;
@@ -254,12 +255,13 @@ function render() {
           if (++tries <= 2) setTimeout(() => { if (img.isConnected) img.src = url; }, 700 * tries);
         });
         img.src = url;
-        mapEl.appendChild(img);
+        frag.appendChild(img);
       }
       img.style.left = (x * TILE - ox) + 'px';
       img.style.top = (y * TILE - oy) + 'px';
     }
   }
+  if (frag.childNodes.length) mapEl.appendChild(frag);
   for (const img of [...mapEl.querySelectorAll('img.tile:not(.stale)')]) {
     if (!need.has(img.id)) img.remove();
   }
