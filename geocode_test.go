@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -42,5 +43,35 @@ func TestGeocodeProxiesAndCaches(t *testing.T) {
 	}
 	if hits != 1 {
 		t.Fatalf("upstream hits = %d, want 1 (cache)", hits)
+	}
+}
+
+func TestGeocodeEscapesQuery(t *testing.T) {
+	const want = "Paris & Lyon+test"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("q"); got != want {
+			t.Errorf("upstream q = %q, want %q", got, want)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`[]`))
+	}))
+	defer ts.Close()
+	s := newTestServer()
+	s.nominatimBase = ts.URL
+
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/geocode?q="+url.QueryEscape(want), nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+}
+
+func TestGeocodeTooLong(t *testing.T) {
+	s := newTestServer()
+	rec := httptest.NewRecorder()
+	q := strings.Repeat("a", 201)
+	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/geocode?q="+q, nil))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
 	}
 }
