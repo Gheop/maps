@@ -42,14 +42,21 @@ async function go() {
   }
 }
 
+const searchBox = $('search-box');
 routeToggle.addEventListener('click', () => setRouteMode(!routeMode));
 swap.addEventListener('click', () => {
   [s.value, arr.value] = [arr.value, s.value];
   if (routeMode) go();
 });
-bs.addEventListener('click', go);
-for (const inp of [s, arr]) {
-  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
-}
+// 1er clic sur la loupe (repliée) : déplie la barre ; ensuite : recherche/calcul
+bs.addEventListener('click', () => {
+  if (searchBox.classList.contains('collapsed')) { searchBox.classList.remove('collapsed'); s.focus(); return; }
+  go();
+});
+s.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); go(); }
+  else if (e.key === 'Escape' && !s.value) { if (routeMode) setRouteMode(false); searchBox.classList.add('collapsed'); s.blur(); }
+});
+arr.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
 
 initGeo($('geo-btn'));
