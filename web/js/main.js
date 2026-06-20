@@ -5,7 +5,10 @@ import { initGeo } from './geo.js';
 
 const $ = (id) => document.getElementById(id);
 
-initMap({ mapEl: $('map'), vbEl: $('viewbox'), ladderEl: $('ladder'), attrEl: $('attribution') });
+initMap({
+  mapEl: $('map'), vbEl: $('viewbox'), ladderEl: $('ladder'), attrEl: $('attribution'),
+  zoomBarEl: $('zoombar'), lmapEl: $('lmap'), maskEl: $('mask_lmap'),
+});
 
 document.querySelectorAll('[data-layer]').forEach((b) => {
   b.addEventListener('click', () => {

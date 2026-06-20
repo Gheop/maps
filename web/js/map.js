@@ -10,7 +10,7 @@ const LAYERS = {
 };
 const LADDER = ['10000 km', '5000 km', '2000 km', '2000 km', '1000 km', '500 km', '200 km', '100 km', '50 km', '20 km', '10 km', '5 km', '2 km', '1 km', '500 m', '250 m', '100 m', '50 m', '20 m', '10 m', '5 m'];
 
-let mapEl, vbEl, ladderEl, attrEl, canvas, ctx;
+let mapEl, vbEl, ladderEl, attrEl, zoomBarEl, lmapEl, maskEl, canvas, ctx;
 let zoom = 2, layerId = 'plan', zoomMax = 19;
 let vpw = 0, vph = 0, tilesX = 0, tilesY = 0;
 let routeCoords = null;
@@ -18,12 +18,14 @@ const markers = [];
 let hashTimer = 0;
 let staleTimer = 0;
 
-export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a }) {
-  mapEl = m; vbEl = v; ladderEl = l; attrEl = a;
+export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a, zoomBarEl: zb, lmapEl: lm, maskEl: mk }) {
+  mapEl = m; vbEl = v; ladderEl = l; attrEl = a; zoomBarEl = zb; lmapEl = lm; maskEl = mk;
   canvas = document.createElement('canvas');
   canvas.className = 'overlay';
   vbEl.appendChild(canvas);
   ctx = canvas.getContext('2d');
+  buildZoomBar();
+  bindMinimap();
   resize();
   window.addEventListener('resize', resize);
   bindPointer();
@@ -83,10 +85,12 @@ export function fitBounds(s, w, n, e) {
   setView((s + n) / 2, (w + e) / 2, z);
 }
 
-function zoomBy(delta, cx = vpw / 2, cy = vph / 2) {
-  const z2 = clamp(zoom + delta, 0, zoomMax);
-  if (z2 === zoom) return;
-  removeStale();              // retire les placeholders d'un zoom précédent
+// Applique le changement de zoom : charge les tuiles du nouveau niveau, en gardant
+// les tuiles déjà chargées (du niveau de départ) mises à l'échelle en fond.
+function commitZoom(z2, cx, cy) {
+  z2 = clamp(z2, 0, zoomMax);
+  if (z2 === zoom) { render(); return; }
+  removeStale();
   const fromZoom = zoom;
   const f = 2 ** (z2 - zoom);
   const left = Math.round((mapEl.offsetLeft - cx) * f + cx);
@@ -95,9 +99,39 @@ function zoomBy(delta, cx = vpw / 2, cy = vph / 2) {
   sizeWorld();
   mapEl.style.left = left + 'px';
   mapEl.style.top = top + 'px';
-  markStale(fromZoom);        // garde les tuiles chargées, mises à l'échelle, en fond
-  render();                   // charge les nouvelles par-dessus, retire les placeholders à la fin
+  markStale(fromZoom);
+  render();
   updateLadder();
+}
+
+// Zoom direct d'un cran (clavier, pinch) — un seul niveau, placeholder géré par commitZoom.
+function zoomInstant(delta, cx = vpw / 2, cy = vph / 2) {
+  commitZoom(zoom + delta, cx, cy);
+}
+
+// Zoom molette/trackpad : pendant la rafale on scale les tuiles en direct (transform,
+// sans recharger), puis on charge le niveau final une seule fois (debounce).
+let wheelTargetF = null, wheelOrigin = null, wheelTimer = 0;
+function zoomWheel(deltaY, cx, cy) {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (wheelTargetF === null) {
+    wheelTargetF = zoom;
+    wheelOrigin = { mx: cx - mapEl.offsetLeft, my: cy - mapEl.offsetTop };
+    if (!reduce) mapEl.style.transformOrigin = wheelOrigin.mx + 'px ' + wheelOrigin.my + 'px';
+  }
+  wheelTargetF = clamp(wheelTargetF - deltaY * 0.01, 0, zoomMax);
+  if (!reduce) mapEl.style.transform = `scale(${2 ** (wheelTargetF - zoom)})`;
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(commitWheel, 140);
+}
+function commitWheel() {
+  const target = clamp(Math.round(wheelTargetF), 0, zoomMax);
+  const cx = wheelOrigin.mx + mapEl.offsetLeft;
+  const cy = wheelOrigin.my + mapEl.offsetTop;
+  mapEl.style.transform = '';
+  mapEl.style.transformOrigin = '';
+  wheelTargetF = null; wheelOrigin = null;
+  commitZoom(target, cx, cy);
 }
 
 function clearTiles() {
@@ -111,8 +145,8 @@ function scheduleRender() {
   requestAnimationFrame(() => { rafPending = false; render(); });
 }
 
-// Zoom progressif : on garde les tuiles déjà chargées du zoom précédent, mises à
-// l'échelle pour couvrir leur zone au nouveau zoom, comme fond sous les nouvelles.
+// Garde les tuiles chargées du niveau de départ, mises à l'échelle pour couvrir leur
+// zone au nouveau zoom, comme fond sous les nouvelles tuiles qui se chargent.
 function markStale(fromZoom) {
   for (const img of [...mapEl.querySelectorAll('img.tile')]) {
     const [tz, tx, ty] = img.id.slice(1).split('_').map(Number);
@@ -168,12 +202,14 @@ function render() {
     if (tz === zoom && (tx < x0 || tx > x1 || ty < y0 || ty > y1)) img.remove();
   }
   if (pending === 0) removeStale();                              // tout était déjà en cache
-  else { clearTimeout(staleTimer); staleTimer = setTimeout(removeStale, 800); } // filet de sécurité
+  else { clearTimeout(staleTimer); staleTimer = setTimeout(removeStale, 1000); } // filet de sécurité
   for (const mk of markers) {
     mk.el.style.left = lonToPx(mk.lon, zoom) + 'px';
     mk.el.style.top = latToPx(mk.lat, zoom) + 'px';
   }
   drawOverlay();
+  updateZoomBar();
+  drawMask();
   scheduleHash();
 }
 
@@ -223,6 +259,48 @@ export function setLayer(id) {
 
 function updateLadder() { if (ladderEl) ladderEl.textContent = LADDER[zoom] || ''; }
 
+// --- Échelle de zoom en pyramide (cliquable) ---
+function buildZoomBar() {
+  if (!zoomBarEl) return;
+  zoomBarEl.textContent = '';
+  for (let z = 20; z >= 0; z--) {
+    const d = document.createElement('div');
+    d.className = 'pz';
+    d.style.top = (20 - z) * 9 + 'px';
+    d.style.width = (z + 2) + 'px';
+    d.dataset.z = String(z);
+    d.title = 'zoom ' + z;
+    d.addEventListener('click', () => { const v = getView(); setView(v.lat, v.lon, z); });
+    zoomBarEl.appendChild(d);
+  }
+}
+function updateZoomBar() {
+  if (!zoomBarEl) return;
+  for (const d of zoomBarEl.children) {
+    const z = +d.dataset.z;
+    d.style.display = z <= zoomMax ? 'block' : 'none';
+    d.style.opacity = z <= zoom ? '1' : '.4';
+  }
+}
+
+// --- Minimap (vue d'ensemble + rectangle de cadrage) ---
+function bindMinimap() {
+  if (!lmapEl) return;
+  lmapEl.addEventListener('click', (e) => {
+    const r = lmapEl.getBoundingClientRect();
+    const Z = lmapEl.clientWidth / (TILE * 2 ** zoom);
+    setView(pxToLat((e.clientY - r.top) / Z, zoom), pxToLon((e.clientX - r.left) / Z, zoom), zoom);
+  });
+}
+function drawMask() {
+  if (!maskEl || !lmapEl) return;
+  const Z = lmapEl.clientWidth / (TILE * 2 ** zoom);
+  maskEl.style.left = (-mapEl.offsetLeft * Z) + 'px';
+  maskEl.style.top = (-mapEl.offsetTop * Z) + 'px';
+  maskEl.style.width = (vpw * Z) + 'px';
+  maskEl.style.height = (vph * Z) + 'px';
+}
+
 function scheduleHash() {
   clearTimeout(hashTimer);
   hashTimer = setTimeout(() => {
@@ -256,7 +334,7 @@ function bindPointer() {
       const d = twoDist(pts);
       if (pinch && Math.abs(Math.log2(d / pinch)) >= 1) {
         const m = twoMid(pts), r = vbEl.getBoundingClientRect();
-        zoomBy(d > pinch ? 1 : -1, m.x - r.left, m.y - r.top);
+        zoomInstant(d > pinch ? 1 : -1, m.x - r.left, m.y - r.top);
         pinch = d;
       }
       return;
@@ -278,7 +356,7 @@ function bindWheel() {
   vbEl.addEventListener('wheel', (e) => {
     e.preventDefault();
     const r = vbEl.getBoundingClientRect();
-    zoomBy(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+    zoomWheel(e.deltaY, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
 }
 
@@ -286,8 +364,8 @@ function bindKeys() {
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     switch (e.key) {
-      case '+': case '=': zoomBy(1); break;
-      case '-': zoomBy(-1); break;
+      case '+': case '=': zoomInstant(1); break;
+      case '-': zoomInstant(-1); break;
       case 'ArrowLeft': pan(100, 0); break;
       case 'ArrowRight': pan(-100, 0); break;
       case 'ArrowUp': pan(0, 100); break;

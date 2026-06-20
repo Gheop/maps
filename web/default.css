@@ -24,8 +24,19 @@ canvas.overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-in
 .layer-btn { border: 0; background: #fff; padding: 6px 10px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
 .layer-btn.active { background: #2563eb; color: #fff; }
 
-#geo-btn { position: fixed; bottom: 30px; right: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: #fff; font-size: 20px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 10; }
-.loading { opacity: .5; }
+#geo-btn { position: fixed; bottom: 140px; right: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: #fff; font-size: 20px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 11; }
+#geo-btn.loading { opacity: .5; }
+/* globe animé pendant la recherche */
+#bs.loading { background: #fff url('/loading.gif') no-repeat center / 20px; color: transparent; }
 #ladder { position: fixed; bottom: 10px; left: 10px; background: rgba(255,255,255,.8); padding: 2px 6px; font-size: 11px; border: 1px solid #999; border-bottom-width: 3px; z-index: 10; }
-#attribution { position: fixed; bottom: 0; right: 0; background: rgba(255,255,255,.8); font-size: 11px; padding: 2px 6px; z-index: 10; }
+#attribution { position: fixed; bottom: 0; right: 134px; background: rgba(255,255,255,.8); font-size: 11px; padding: 2px 6px; z-index: 10; }
 #attribution a { color: #333; }
+
+/* échelle de zoom en pyramide (cliquable) */
+#zoombar { position: fixed; top: 100px; left: 0; width: 30px; height: 200px; z-index: 10; }
+.pz { position: absolute; left: 6px; height: 0; border-top: 6px solid #ffa500; opacity: .4; cursor: pointer; }
+.pz:hover { border-top-color: red; opacity: 1; }
+
+/* minimap (vue d'ensemble + rectangle de cadrage) */
+#lmap { position: fixed; right: 0; bottom: 0; width: 128px; height: 128px; opacity: .75; border-top: 1px solid #000; border-left: 1px solid #000; z-index: 10; cursor: pointer; background: #aad3df url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACAAQMAAAD58POIAAAABlBMVEW229v///9mOh9lAAAACXZwQWcAAACAAAAAgAAw4TGaAAADEklEQVRIx7XUvW7UQBAA4HGWZK84YktI6JASTBeooCPFKbmOMq+QB6BImYJgoxRXIHF0lOENwhtkoyBdSiiosyKRKM9AcY5ieZmZ3bV9C5SxdNb583p29m8Abu9aC+H14mP8xixCembyBchmQQtjTPEP6DXPwsJ6T3dAR1DBrofaGCXUS9jzUCHEChIP96hFjH+GDi4wRk7Qt8/RuwxbrLS5LuU3DlwLeXGNsATAn9FYjUbAF5DluzavIiVYBZNXDNMiJugLk4/4k6cIGHIgzPkjhuOSIdkxlZ2vWWXhwlSYa57H89oCJoxNRBHdGGnySN8xNAQe+8nYgChfEMxhTPdxDbI6ITBwRjAtQdbGwhxvl9NCx8bBBt5mU1U0QDP8+1Dp1IPE25NDBdsdqOMo91CBmCOMGtiH6BRBwdIWP2tcPGXMRINYY1D4CjIz0yDXGU4V7Q5aamljKFoM/FuCy0sTpATCwle7DNS7BeXgCqJFUAgzgo8Walw284PgWQsf6Lm260JzLZd5aAwSe8XJp0yulF1sBFnQxFzyrolok0ru9ZfdUnXC6bYbvGrAbeVXdoS4W7+483VuIcv8+XnLU1pubSduGypuoYdbDkAzqMFDDxuaetGD+5s+SMFz0EsG/phWNMkKHvsTFNeUWQ4PPvtPjP3d/ZZ70NwqnhceCooDAg78ecClwxawORzZVPETBuFiSI6BL+Unf5IRKkUZRnbOMClZ0hBLaOEaIas84OclBqQls9NMC0N7pwu6C5WDAwcCg3N/uy6oaCrQUFjQbfmxd+WfeysWmlLR6wcAgxDc8MPiKZMARNhC5MktVPG/Yg5C2Ath5L587wfF87Ev6DTai1+YcQOR4j0xoWrB17K2u53LFg9f+5NtD0i/AxxkdaIh7UCCJbcpQQQ7E4TMgQY+9QpMCxRORR1IfXnz5SH15c0DlzefBvWC92vh08BMl/D+c3zUBhVUteJxG0PQiU0byG0Ze37UAYr3Pe10S6NQ2wE0Q/EgQzg2ncFlpnsV0MzVf6AMoQrBgAqhSAMo40X4AwOHV3F8fcMNAAAAAElFTkSuQmCC") no-repeat center / 128px 128px; }
+#mask_lmap { position: absolute; border: 1px solid #ffa500; box-sizing: border-box; pointer-events: none; }
