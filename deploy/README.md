@@ -27,4 +27,44 @@
 Aucun secret : les tuiles sont chargées en direct par le navigateur. Stadia
 (Toner/Aquarelle) est autorisé par domain auth `*.gheop.com` (via le Referer).
 
-## Bascule nginx publique : voir le plan front (étape finale).
+## Bascule nginx publique (faite le 2026-06-20)
+
+`maps.gheop.com` est servi par nginx (hôte) qui termine le TLS et proxie vers
+Traefik. Les deux blocs `server { … maps.gheop.com … root /www/maps … }` de
+`/etc/nginx/nginx.conf` ont été remplacés par :
+
+    server {
+        server_name maps.gheop.com map.gheop.com;
+        listen 80;
+        return 301 https://maps.gheop.com$request_uri;
+    }
+    server {
+        server_name maps.gheop.com;
+        listen 443 ssl;
+        http2 on;
+        gzip on;
+        ssl_certificate     /etc/letsencrypt/live/maps.gheop.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/maps.gheop.com/privkey.pem;
+        location / {
+            proxy_pass http://127.0.0.1:30800;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+
+Appliquer (sudo requis, non NOPASSWD pour nginx sur cet hôte) :
+
+    sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak-maps-cutover-20260620
+    sudo cp /tmp/nginx.conf.new /etc/nginx/nginx.conf   # conf éditée
+    sudo nginx -t && sudo nginx -s reload
+
+Rollback :
+
+    sudo cp /etc/nginx/nginx.conf.bak-maps-cutover-20260620 /etc/nginx/nginx.conf
+    sudo nginx -s reload
+
+Le `Referer` reste `https://maps.gheop.com/` (Referrer-Policy `strict-origin-when-cross-origin`),
+indispensable pour l'auth par domaine Stadia. L'ancien `/www/maps` (php) reste en
+place mais n'est plus servi.
