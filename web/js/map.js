@@ -212,6 +212,7 @@ export function setLayer(id) {
   sizeWorld();
   clearTiles();
   render();
+  updateLadder();
   if (attrEl) attrEl.innerHTML = LAYERS[id].attr;
 }
 
@@ -278,7 +279,7 @@ function bindWheel() {
 
 function bindKeys() {
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     switch (e.key) {
       case '+': case '=': zoomBy(1); break;
       case '-': zoomBy(-1); break;
