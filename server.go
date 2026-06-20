@@ -12,6 +12,7 @@ type server struct {
 	client        *http.Client
 	nominatimBase string
 	osrmBase      string
+	cache         *lruCache
 }
 
 func newServer(webRoot fs.FS) *server {
@@ -20,6 +21,7 @@ func newServer(webRoot fs.FS) *server {
 		client:        &http.Client{Timeout: 8 * time.Second},
 		nominatimBase: "https://nominatim.openstreetmap.org",
 		osrmBase:      "https://router.project-osrm.org",
+		cache:         newLRUCache(512),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.handleHealth)
