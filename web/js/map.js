@@ -6,7 +6,7 @@ const LAYERS = {
   sat: { url: (x, y, z) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`, max: 19, attr: 'Imagery © <a href="https://www.esri.com/">Esri</a>' },
   relief: { url: (x, y, z) => `https://tile.opentopomap.org/${z}/${x}/${y}.png`, max: 17, attr: '© <a href="https://opentopomap.org/">OpenTopoMap</a> (CC-BY-SA), © OpenStreetMap' },
   toner: { url: (x, y, z) => `https://tiles.stadiamaps.com/tiles/stamen_toner/${z}/${x}/${y}.png`, max: 20, attr: '© <a href="https://stadiamaps.com/">Stadia Maps</a>, © Stamen, © OpenStreetMap' },
-  aquarelle: { url: (x, y, z) => `https://tiles.stadiamaps.com/tiles/stamen_watercolor/${z}/${x}/${y}.jpg`, max: 15, attr: '© <a href="https://stadiamaps.com/">Stadia Maps</a>, © Stamen, © OpenStreetMap' },
+  aquarelle: { url: (x, y, z) => `https://tiles.stadiamaps.com/tiles/stamen_watercolor/${z}/${x}/${y}.jpg`, max: 14, attr: '© <a href="https://stadiamaps.com/">Stadia Maps</a>, © Stamen, © OpenStreetMap' },
 };
 const LADDER = ['10000 km', '5000 km', '2000 km', '2000 km', '1000 km', '500 km', '200 km', '100 km', '50 km', '20 km', '10 km', '5 km', '2 km', '1 km', '500 m', '250 m', '100 m', '50 m', '20 m', '10 m', '5 m'];
 
