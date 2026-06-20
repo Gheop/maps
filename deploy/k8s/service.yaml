@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: maps
+  namespace: maps
+spec:
+  selector:
+    app: maps
+  ports:
+    - port: 80
+      targetPort: 8080

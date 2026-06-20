@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: maps
+  namespace: maps
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: maps.gheop.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: maps
+                port:
+                  number: 80
