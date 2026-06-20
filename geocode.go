@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -9,7 +10,7 @@ import (
 func (s *server) handleGeocode(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" || len(q) > 200 {
-		http.Error(w, `{"error":"missing or invalid q"}`, http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, `{"error":"missing or invalid q"}`)
 		return
 	}
 	key := "geocode:" + q
@@ -20,7 +21,8 @@ func (s *server) handleGeocode(w http.ResponseWriter, r *http.Request) {
 	u := s.nominatimBase + "/search?format=jsonv2&limit=5&accept-language=fr&q=" + url.QueryEscape(q)
 	body, ctype, err := s.upstreamGet(u)
 	if err != nil {
-		http.Error(w, `{"error":"geocoding upstream failed"}`, http.StatusBadGateway)
+		log.Printf("geocode upstream failed: %v", err)
+		writeJSONError(w, http.StatusBadGateway, `{"error":"geocoding upstream failed"}`)
 		return
 	}
 	if ctype == "" {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -29,12 +30,12 @@ func parseLatLon(s string) (float64, float64, error) {
 func (s *server) handleRoute(w http.ResponseWriter, r *http.Request) {
 	flat, flon, err := parseLatLon(r.URL.Query().Get("from"))
 	if err != nil {
-		http.Error(w, `{"error":"bad from"}`, http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, `{"error":"bad from"}`)
 		return
 	}
 	tlat, tlon, err := parseLatLon(r.URL.Query().Get("to"))
 	if err != nil {
-		http.Error(w, `{"error":"bad to"}`, http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, `{"error":"bad to"}`)
 		return
 	}
 	key := fmt.Sprintf("route:%.6f,%.6f;%.6f,%.6f", flat, flon, tlat, tlon)
@@ -46,7 +47,8 @@ func (s *server) handleRoute(w http.ResponseWriter, r *http.Request) {
 		s.osrmBase, flon, flat, tlon, tlat)
 	body, ctype, err := s.upstreamGet(u)
 	if err != nil {
-		http.Error(w, `{"error":"routing upstream failed"}`, http.StatusBadGateway)
+		log.Printf("route upstream failed: %v", err)
+		writeJSONError(w, http.StatusBadGateway, `{"error":"routing upstream failed"}`)
 		return
 	}
 	if ctype == "" {

@@ -44,6 +44,12 @@ func (s *server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("ok"))
 }
 
+func writeJSONError(w http.ResponseWriter, status int, body string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(body))
+}
+
 func writeCached(w http.ResponseWriter, body []byte, ctype string) {
 	if ctype != "" {
 		w.Header().Set("Content-Type", ctype)
