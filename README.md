@@ -16,6 +16,8 @@ Pour qui : ceux qui veulent une carte web qui démarre vite, tient dans un seul 
 - Permalien `#calque/zoom/lat/lon` dans l'URL (calque inclus, donc partageable et conservé au rafraîchissement)
 - Comblage des tuiles manquantes par la tuile parente dézoomée
 - Minimap régionale, échelle, pyramide de zoom cliquable
+- Double-clic pour zoomer (shift pour dézoomer)
+- Fonctionne hors-ligne et revisites instantanées (Service Worker)
 
 ## Installation
 
@@ -53,6 +55,15 @@ Les tuiles sont chargées directement depuis les fournisseurs côté navigateur.
 MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
+
+### v1.2.0 — Déplacement et zoom à fond (2026-06-21)
+
+- Déplacement par `transform: translate3d` (compositeur GPU) au lieu d'un re-rendu complet à chaque frame ; re-tuilage seulement par paliers
+- Zoom : préchargement des tuiles du niveau visé pendant le scroll, commit raccourci à 90 ms, insertion groupée (`DocumentFragment`). Le gel du thread principal au zoom passe d'environ 215 ms à moins de 30 ms
+- Anneau de tuiles préchargé au repos et dans le sens du déplacement : plus de tuile blanche au pan
+- Service Worker : tuiles en cache (revisites instantanées), app servie hors-ligne
+- Double-clic pour zoomer (shift = dézoom)
+- Suppression du reflow forcé par frame, `fetchpriority`, écouteurs passifs, `will-change`
 
 ### v1.1.0 — Comblage des tuiles et calque dans l'URL (2026-06-20)
 
