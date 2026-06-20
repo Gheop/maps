@@ -53,9 +53,7 @@ func (c *lruCache) Set(key string, value []byte, ctype string) {
 	c.items[key] = el
 	if c.ll.Len() > c.max {
 		back := c.ll.Back()
-		if back != nil {
-			c.ll.Remove(back)
-			delete(c.items, back.Value.(*cacheEntry).key)
-		}
+		c.ll.Remove(back)
+		delete(c.items, back.Value.(*cacheEntry).key)
 	}
 }
