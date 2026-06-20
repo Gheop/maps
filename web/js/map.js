@@ -174,13 +174,29 @@ function render() {
         img.decoding = 'async';
         img.style.zIndex = '2';
         const url = LAYERS[layerId].url(x, y, zoom);
-        let tries = 0;
+        let tries = 0, settled = false;
+        const finish = () => { if (!settled) { settled = true; done(); } };
         pending++;
-        img.addEventListener('load', () => { img.classList.add('loaded'); done(); });
+        img.addEventListener('load', () => {
+          img.classList.add('loaded');
+          img.classList.remove('fallback');
+          img.style.backgroundImage = '';
+          finish();
+        });
         img.addEventListener('error', () => {
-          // réessaie (délai croissant) : récupère les tuiles throttlées par le fournisseur
-          if (++tries <= 3) { setTimeout(() => { if (img.isConnected) { img.removeAttribute('src'); img.src = url; } }, 500 * tries); }
-          else { img.style.visibility = 'hidden'; done(); }
+          // comble le trou tout de suite avec la tuile parent (zoom-1) mise à l'échelle
+          // (fond CSS, requête async qui ne bloque pas les autres tuiles)
+          if (zoom > 0 && !img.dataset.fb) {
+            img.dataset.fb = '1';
+            img.classList.add('fallback');
+            img.style.backgroundImage = `url("${LAYERS[layerId].url(x >> 1, y >> 1, zoom - 1)}")`;
+            img.style.backgroundSize = '200% 200%';
+            img.style.backgroundPosition = `${(x & 1) * 100}% ${(y & 1) * 100}%`;
+          }
+          img.removeAttribute('src'); // évite l'icône "image cassée" par-dessus le fond
+          finish();
+          // réessaie la vraie tuile en tâche de fond (récupère un throttle transitoire)
+          if (++tries <= 2) setTimeout(() => { if (img.isConnected) img.src = url; }, 700 * tries);
         });
         img.src = url;
         mapEl.appendChild(img);
