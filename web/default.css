@@ -28,9 +28,15 @@ canvas.overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-in
 #route-out { position: fixed; top: 94px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.92); border-radius: 4px; padding: 3px 12px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.3); z-index: 10; }
 #route-out:empty { display: none; }
 
-#layers { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
+#layers { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; width: 118px; }
 .layer-btn { border: 0; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); padding: 6px 10px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
-.layer-btn.active { background: rgba(37,99,235,.7); color: #fff; }
+#layers-current { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#layers-current .arrow { font-size: 10px; transition: transform .2s ease; }
+#layers.open #layers-current .arrow { transform: rotate(180deg); }
+#layers-list { display: flex; flex-direction: column; gap: 4px; }
+#layers-list[hidden] { display: none; }
+#layers-list .layer-btn { background: rgba(255,255,255,.4); }
+#layers-list .layer-btn:hover { background: rgba(255,255,255,.7); }
 
 #geo-btn { position: fixed; bottom: 140px; right: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 20px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 11; }
 #geo-btn.loading { opacity: .5; }

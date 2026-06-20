@@ -28,11 +28,16 @@
   </div>
 
   <div id="layers">
-    <button class="layer-btn active" type="button" data-layer="plan">Plan</button>
-    <button class="layer-btn" type="button" data-layer="sat">Satellite</button>
-    <button class="layer-btn" type="button" data-layer="relief">Relief</button>
-    <button class="layer-btn" type="button" data-layer="toner">Toner</button>
-    <button class="layer-btn" type="button" data-layer="aquarelle">Aquarelle</button>
+    <button id="layers-current" class="layer-btn" type="button">
+      <span id="layers-current-name">Plan</span><span class="arrow">▾</span>
+    </button>
+    <div id="layers-list" hidden>
+      <button class="layer-btn" type="button" data-layer="plan">Plan</button>
+      <button class="layer-btn" type="button" data-layer="sat">Satellite</button>
+      <button class="layer-btn" type="button" data-layer="relief">Relief</button>
+      <button class="layer-btn" type="button" data-layer="toner">Toner</button>
+      <button class="layer-btn" type="button" data-layer="aquarelle">Aquarelle</button>
+    </div>
   </div>
 
   <div id="zoombar" title="Niveau de zoom"></div>

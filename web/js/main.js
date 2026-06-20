@@ -10,14 +10,21 @@ initMap({
   zoomBarEl: $('zoombar'), lmapEl: $('lmap'), maskEl: $('mask_lmap'),
 });
 
-// Couches
-document.querySelectorAll('[data-layer]').forEach((b) => {
+// Sélecteur de calques repliable (bouton courant + flèche -> liste des autres)
+const layersEl = $('layers');
+const curName = $('layers-current-name');
+const layersList = $('layers-list');
+const openLayers = (open) => { layersEl.classList.toggle('open', open); layersList.hidden = !open; };
+$('layers-current').addEventListener('click', () => openLayers(layersList.hidden));
+layersList.querySelectorAll('[data-layer]').forEach((b) => {
   b.addEventListener('click', () => {
-    document.querySelectorAll('[data-layer]').forEach((x) => x.classList.remove('active'));
-    b.classList.add('active');
     setLayer(b.dataset.layer);
+    curName.textContent = b.textContent;
+    layersList.querySelectorAll('[data-layer]').forEach((x) => { x.hidden = x.dataset.layer === b.dataset.layer; });
+    openLayers(false);
   });
 });
+layersList.querySelector('[data-layer="plan"]').hidden = true; // calque courant masqué dans la liste
 
 // Recherche / itinéraire (champ recherche = départ en mode itinéraire)
 const s = $('s'), bs = $('bs'), arr = $('arr');
