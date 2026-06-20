@@ -173,10 +173,16 @@ function render() {
         img.alt = '';
         img.decoding = 'async';
         img.style.zIndex = '2';
+        const url = LAYERS[layerId].url(x, y, zoom);
+        let tries = 0;
         pending++;
         img.addEventListener('load', () => { img.classList.add('loaded'); done(); });
-        img.addEventListener('error', () => { img.style.visibility = 'hidden'; done(); });
-        img.src = LAYERS[layerId].url(x, y, zoom);
+        img.addEventListener('error', () => {
+          // réessaie (délai croissant) : récupère les tuiles throttlées par le fournisseur
+          if (++tries <= 3) { setTimeout(() => { if (img.isConnected) { img.removeAttribute('src'); img.src = url; } }, 500 * tries); }
+          else { img.style.visibility = 'hidden'; done(); }
+        });
+        img.src = url;
         mapEl.appendChild(img);
       }
       img.style.left = (x * TILE - ox) + 'px';
