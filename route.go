@@ -37,7 +37,7 @@ func (s *server) handleRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"bad to"}`, http.StatusBadRequest)
 		return
 	}
-	key := fmt.Sprintf("route:%.5f,%.5f;%.5f,%.5f", flat, flon, tlat, tlon)
+	key := fmt.Sprintf("route:%.6f,%.6f;%.6f,%.6f", flat, flon, tlat, tlon)
 	if body, ctype, ok := s.cache.Get(key); ok {
 		writeCached(w, body, ctype)
 		return

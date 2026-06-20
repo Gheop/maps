@@ -21,10 +21,29 @@ func TestParseLatLon(t *testing.T) {
 
 func TestRouteBadParams(t *testing.T) {
 	s := newTestServer()
+	for _, q := range []string{
+		"/api/route?from=foo&to=bar",
+		"/api/route?from=45.8,0.09&to=bad", // from valide, to invalide
+	} {
+		rec := httptest.NewRecorder()
+		s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, q, nil))
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("%s: status = %d, want 400", q, rec.Code)
+		}
+	}
+}
+
+func TestRouteUpstreamError(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer ts.Close()
+	s := newTestServer()
+	s.osrmBase = ts.URL
 	rec := httptest.NewRecorder()
-	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/route?from=foo&to=bar", nil))
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400", rec.Code)
+	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/route?from=45.8,0.09&to=46.0,0.5", nil))
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want 502", rec.Code)
 	}
 }
 
