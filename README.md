@@ -1,6 +1,10 @@
 # Gheop Maps
 
-Un clone de Google Maps ultra-léger : carte glissante en vanilla JS (zéro dépendance, aucun build), tuiles OpenStreetMap, et un petit proxy Go pour la recherche et les itinéraires. C'est la reprise modernisée d'un projet de 2009 servi sur https://maps.gheop.com/.
+Un clone de Google Maps ultra-léger : carte glissante en vanilla JS (zéro dépendance, aucun build), tuiles OpenStreetMap, et un petit proxy Go pour la recherche et les itinéraires. C'est la reprise modernisée d'un projet de 2009.
+
+En ligne : **https://maps.gheop.com/**
+
+![Gheop Maps](assets/screenshot.png)
 
 Pour qui : ceux qui veulent une carte web qui démarre vite, tient dans un seul binaire et se déploie sans toolchain front.
 
@@ -42,7 +46,11 @@ Les tuiles sont chargées directement depuis les fournisseurs côté navigateur.
 
 - Front : ES modules vanilla, modèle de tuiles centré sur le viewport (coordonnées du centre en pixels monde), projection Web Mercator
 - Back : `net/http` stdlib, cache LRU borné, image distroless statique
-- Déploiement : k3s sur gheop.com (voir `deploy/README.md`)
+- Déploiement : k3s (voir `deploy/README.md`)
+
+## Licence
+
+MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
