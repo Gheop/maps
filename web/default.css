@@ -29,10 +29,10 @@ canvas.overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-in
 #route-out:empty { display: none; }
 
 #layers { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
-.layer-btn { border: 0; background: rgba(255,255,255,.9); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); padding: 6px 10px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
-.layer-btn.active { background: rgba(37,99,235,.9); color: #fff; }
+.layer-btn { border: 0; background: rgba(255,255,255,.8); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); padding: 6px 10px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
+.layer-btn.active { background: rgba(37,99,235,.8); color: #fff; }
 
-#geo-btn { position: fixed; bottom: 140px; right: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255,255,255,.9); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 20px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 11; }
+#geo-btn { position: fixed; bottom: 140px; right: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255,255,255,.8); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 20px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 11; }
 #geo-btn.loading { opacity: .5; }
 /* globe animé pendant la recherche */
 #bs.loading { background: #fff url('/loading.gif') no-repeat center / 20px; color: transparent; }
