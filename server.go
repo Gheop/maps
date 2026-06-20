@@ -25,6 +25,7 @@ func newServer(webRoot fs.FS) *server {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.handleHealth)
+	mux.HandleFunc("GET /api/geocode", s.handleGeocode)
 	mux.Handle("/", s.web)
 	s.mux = mux
 	return s
