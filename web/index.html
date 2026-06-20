@@ -29,14 +29,16 @@
 
   <div id="layers">
     <button id="layers-current" class="layer-btn" type="button">
-      <span id="layers-current-name">Plan</span><span class="arrow">▾</span>
+      <span class="name" id="layers-current-name">Plan</span>
+      <span class="arrow">▾</span>
+      <span class="thumb" id="layers-current-thumb" data-layer="plan"></span>
     </button>
     <div id="layers-list" hidden>
-      <button class="layer-btn" type="button" data-layer="plan">Plan</button>
-      <button class="layer-btn" type="button" data-layer="sat">Satellite</button>
-      <button class="layer-btn" type="button" data-layer="relief">Relief</button>
-      <button class="layer-btn" type="button" data-layer="toner">Toner</button>
-      <button class="layer-btn" type="button" data-layer="aquarelle">Aquarelle</button>
+      <button class="layer-btn" type="button" data-layer="plan"><span class="name">Plan</span><span class="thumb" data-layer="plan"></span></button>
+      <button class="layer-btn" type="button" data-layer="sat"><span class="name">Satellite</span><span class="thumb" data-layer="sat"></span></button>
+      <button class="layer-btn" type="button" data-layer="relief"><span class="name">Relief</span><span class="thumb" data-layer="relief"></span></button>
+      <button class="layer-btn" type="button" data-layer="toner"><span class="name">Toner</span><span class="thumb" data-layer="toner"></span></button>
+      <button class="layer-btn" type="button" data-layer="aquarelle"><span class="name">Aquarelle</span><span class="thumb" data-layer="aquarelle"></span></button>
     </div>
   </div>
 

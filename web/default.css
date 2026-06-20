@@ -28,15 +28,22 @@ canvas.overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-in
 #route-out { position: fixed; top: 94px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.92); border-radius: 4px; padding: 3px 12px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.3); z-index: 10; }
 #route-out:empty { display: none; }
 
-#layers { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; width: 118px; }
-.layer-btn { border: 0; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); padding: 6px 10px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
-#layers-current { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-#layers-current .arrow { font-size: 10px; transition: transform .2s ease; }
+#layers { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; width: 134px; }
+.layer-btn { display: flex; align-items: center; gap: 6px; border: 0; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); padding: 5px 8px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
+.layer-btn[hidden] { display: none; } /* sinon display:flex écrase l'attribut hidden */
+.layer-btn .name { flex: 1; white-space: nowrap; }
+.layer-btn .thumb { flex: 0 0 22px; width: 22px; height: 22px; border-radius: 3px; background: #dcd7cc center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+#layers-current .arrow { flex: 0 0 12px; text-align: center; font-size: 10px; transition: transform .2s ease; }
 #layers.open #layers-current .arrow { transform: rotate(180deg); }
 #layers-list { display: flex; flex-direction: column; gap: 4px; }
 #layers-list[hidden] { display: none; }
 #layers-list .layer-btn { background: rgba(255,255,255,.4); }
 #layers-list .layer-btn:hover { background: rgba(255,255,255,.7); }
+.thumb[data-layer="plan"] { background-image: url("https://tile.openstreetmap.org/6/33/23.png"); }
+.thumb[data-layer="sat"] { background-image: url("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/6/23/33"); }
+.thumb[data-layer="relief"] { background-image: url("https://tile.opentopomap.org/6/33/23.png"); }
+.thumb[data-layer="toner"] { background-image: url("https://tiles.stadiamaps.com/tiles/stamen_toner/6/33/23.png"); }
+.thumb[data-layer="aquarelle"] { background-image: url("https://tiles.stadiamaps.com/tiles/stamen_watercolor/6/33/23.jpg"); }
 
 #geo-btn { position: fixed; bottom: 140px; right: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-size: 20px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 11; }
 #geo-btn.loading { opacity: .5; }

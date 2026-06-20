@@ -13,18 +13,21 @@ initMap({
 // Sélecteur de calques repliable (bouton courant + flèche -> liste des autres)
 const layersEl = $('layers');
 const curName = $('layers-current-name');
+const curThumb = $('layers-current-thumb');
 const layersList = $('layers-list');
 const openLayers = (open) => { layersEl.classList.toggle('open', open); layersList.hidden = !open; };
 $('layers-current').addEventListener('click', () => openLayers(layersList.hidden));
-layersList.querySelectorAll('[data-layer]').forEach((b) => {
+layersList.querySelectorAll('button[data-layer]').forEach((b) => {
   b.addEventListener('click', () => {
     setLayer(b.dataset.layer);
-    curName.textContent = b.textContent;
-    layersList.querySelectorAll('[data-layer]').forEach((x) => { x.hidden = x.dataset.layer === b.dataset.layer; });
+    curName.textContent = b.querySelector('.name').textContent;
+    curThumb.dataset.layer = b.dataset.layer;
+    layersList.querySelectorAll('button[data-layer]').forEach((x) => { x.hidden = x.dataset.layer === b.dataset.layer; });
     openLayers(false);
   });
 });
-layersList.querySelector('[data-layer="plan"]').hidden = true; // calque courant masqué dans la liste
+layersList.querySelector('button[data-layer="plan"]').hidden = true; // calque courant masqué dans la liste
+document.addEventListener('click', (e) => { if (!layersEl.contains(e.target)) openLayers(false); }); // referme au clic ailleurs
 
 // Recherche / itinéraire (champ recherche = départ en mode itinéraire)
 const s = $('s'), bs = $('bs'), arr = $('arr');
