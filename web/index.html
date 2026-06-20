@@ -1,4 +1,44 @@
 <!doctype html>
-<meta charset="utf-8">
-<title>Gheop Maps</title>
-<p>Gheop Maps — backend en place. Front à venir.</p>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Gheop Maps</title>
+  <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+  <link rel="preconnect" href="https://tiles.stadiamaps.com" crossorigin>
+  <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
+  <link rel="preconnect" href="https://tile.opentopomap.org" crossorigin>
+  <link rel="stylesheet" href="/default.css">
+</head>
+<body>
+  <div id="viewbox"><div id="map"></div></div>
+
+  <div id="controls">
+    <div id="search-box">
+      <input id="s" type="search" placeholder="Rechercher un lieu…" autocomplete="off">
+      <button id="bs" type="button" title="Rechercher">⌕</button>
+    </div>
+    <details id="route-panel">
+      <summary>Itinéraire</summary>
+      <input id="dep" type="text" placeholder="Départ" autocomplete="off">
+      <input id="arr" type="text" placeholder="Arrivée" autocomplete="off">
+      <button id="route-btn" type="button">Calculer</button>
+      <div id="route-out"></div>
+    </details>
+  </div>
+
+  <div id="layers">
+    <button class="layer-btn active" type="button" data-layer="plan">Plan</button>
+    <button class="layer-btn" type="button" data-layer="sat">Satellite</button>
+    <button class="layer-btn" type="button" data-layer="relief">Relief</button>
+    <button class="layer-btn" type="button" data-layer="toner">Toner</button>
+    <button class="layer-btn" type="button" data-layer="aquarelle">Aquarelle</button>
+  </div>
+
+  <button id="geo-btn" type="button" title="Ma position">◎</button>
+  <div id="ladder"></div>
+  <div id="attribution"></div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
