@@ -75,3 +75,8 @@ s.addEventListener('keydown', (e) => {
 arr.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
 
 initGeo($('geo-btn'));
+
+// Service Worker : cache des tuiles (revisites instantanées + hors-ligne)
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
