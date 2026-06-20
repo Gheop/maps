@@ -10,7 +10,9 @@ const LAYERS = {
 };
 const LADDER = ['10000 km', '5000 km', '2000 km', '2000 km', '1000 km', '500 km', '200 km', '100 km', '50 km', '20 km', '10 km', '5 km', '2 km', '1 km', '500 m', '250 m', '100 m', '50 m', '20 m', '10 m', '5 m'];
 
-let mapEl, vbEl, ladderEl, attrEl, zoomBarEl, lmapEl, maskEl, canvas, ctx;
+let mapEl, vbEl, ladderEl, attrEl, zoomBarEl, lmapEl, maskEl, lmapTilesEl, canvas, ctx;
+let lmapSig = '';
+const MINI_DZ = 4; // la minimap montre la zone 4 niveaux de zoom en dessous (rectangle bien visible)
 let zoom = 2, layerId = 'plan', zoomMax = 19;
 let vpw = 0, vph = 0, tilesX = 0, tilesY = 0;
 let routeCoords = null;
@@ -209,7 +211,7 @@ function render() {
   }
   drawOverlay();
   updateZoomBar();
-  drawMask();
+  updateMinimap();
   scheduleHash();
 }
 
@@ -283,22 +285,59 @@ function updateZoomBar() {
   }
 }
 
-// --- Minimap (vue d'ensemble + rectangle de cadrage) ---
+// --- Minimap : vue régionale (zoom courant - MINI_DZ) centrée + rectangle de cadrage ---
 function bindMinimap() {
   if (!lmapEl) return;
+  lmapTilesEl = document.createElement('div');
+  lmapTilesEl.id = 'lmap_tiles';
+  lmapEl.insertBefore(lmapTilesEl, lmapEl.firstChild); // sous le rectangle (#mask_lmap)
   lmapEl.addEventListener('click', (e) => {
     const r = lmapEl.getBoundingClientRect();
-    const Z = lmapEl.clientWidth / (TILE * 2 ** zoom);
-    setView(pxToLat((e.clientY - r.top) / Z, zoom), pxToLon((e.clientX - r.left) / Z, zoom), zoom);
+    const W = lmapEl.clientWidth, H = lmapEl.clientHeight;
+    const mz = clamp(zoom - MINI_DZ, 0, zoomMax);
+    const c = getView();
+    const wx = lonToPx(c.lon, mz) - W / 2 + (e.clientX - r.left);
+    const wy = latToPx(c.lat, mz) - H / 2 + (e.clientY - r.top);
+    setView(pxToLat(wy, mz), pxToLon(wx, mz), zoom);
   });
 }
-function drawMask() {
-  if (!maskEl || !lmapEl) return;
-  const Z = lmapEl.clientWidth / (TILE * 2 ** zoom);
-  maskEl.style.left = (-mapEl.offsetLeft * Z) + 'px';
-  maskEl.style.top = (-mapEl.offsetTop * Z) + 'px';
-  maskEl.style.width = (vpw * Z) + 'px';
-  maskEl.style.height = (vph * Z) + 'px';
+function updateMinimap() {
+  if (!lmapEl || !maskEl || !lmapTilesEl) return;
+  const W = lmapEl.clientWidth, H = lmapEl.clientHeight;
+  const mz = clamp(zoom - MINI_DZ, 0, zoomMax);
+  const c = getView();
+  const ox = lonToPx(c.lon, mz) - W / 2, oy = latToPx(c.lat, mz) - H / 2;
+  const n = 2 ** mz;
+  const x0 = Math.floor(ox / TILE), x1 = Math.floor((ox + W) / TILE);
+  const y0 = Math.floor(oy / TILE), y1 = Math.floor((oy + H) / TILE);
+  const sig = `${mz}:${x0},${x1},${y0},${y1}:${layerId}`;
+  if (sig !== lmapSig) { // ne reconstruit les <img> que si la plage de tuiles change
+    lmapSig = sig;
+    lmapTilesEl.textContent = '';
+    for (let x = x0; x <= x1; x++) {
+      for (let y = y0; y <= y1; y++) {
+        if (x < 0 || y < 0 || x >= n || y >= n) continue;
+        const img = new Image();
+        img.alt = '';
+        img.dataset.tx = String(x);
+        img.dataset.ty = String(y);
+        img.style.position = 'absolute';
+        img.style.width = img.style.height = TILE + 'px';
+        img.src = LAYERS[layerId].url(x, y, mz);
+        lmapTilesEl.appendChild(img);
+      }
+    }
+  }
+  for (const img of lmapTilesEl.children) { // repositionne à chaque déplacement
+    img.style.left = (img.dataset.tx * TILE - ox) + 'px';
+    img.style.top = (img.dataset.ty * TILE - oy) + 'px';
+  }
+  const scale = 2 ** (zoom - mz);
+  const rw = Math.max(6, vpw / scale), rh = Math.max(6, vph / scale);
+  maskEl.style.left = (W / 2 - rw / 2) + 'px';
+  maskEl.style.top = (H / 2 - rh / 2) + 'px';
+  maskEl.style.width = rw + 'px';
+  maskEl.style.height = rh + 'px';
 }
 
 function scheduleHash() {
