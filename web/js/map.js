@@ -9,6 +9,7 @@ const LAYERS = {
   aquarelle: { url: (x, y, z) => `https://tiles.stadiamaps.com/tiles/stamen_watercolor/${z}/${x}/${y}.jpg`, max: 15, attr: '© <a href="https://stadiamaps.com/">Stadia Maps</a>, © Stamen, © OpenStreetMap' },
 };
 const LADDER = ['10000 km', '5000 km', '2000 km', '2000 km', '1000 km', '500 km', '200 km', '100 km', '50 km', '20 km', '10 km', '5 km', '2 km', '1 km', '500 m', '250 m', '100 m', '50 m', '20 m', '10 m', '5 m'];
+const BLANK_PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // 1x1 transparent
 
 let mapEl, vbEl, ladderEl, attrEl, zoomBarEl, lmapEl, maskEl, lmapTilesEl, canvas, ctx;
 let lmapSig = '';
@@ -174,10 +175,11 @@ function render() {
         img.decoding = 'async';
         img.style.zIndex = '2';
         const url = LAYERS[layerId].url(x, y, zoom);
-        let tries = 0, settled = false;
+        let tries = 0, settled = false, fb = false;
         const finish = () => { if (!settled) { settled = true; done(); } };
         pending++;
         img.addEventListener('load', () => {
+          if (img.src.startsWith('data:')) return; // pixel transparent du fallback, pas la vraie tuile
           img.classList.add('loaded');
           img.classList.remove('fallback');
           img.style.backgroundImage = '';
@@ -186,14 +188,15 @@ function render() {
         img.addEventListener('error', () => {
           // comble le trou tout de suite avec la tuile parent (zoom-1) mise à l'échelle
           // (fond CSS, requête async qui ne bloque pas les autres tuiles)
-          if (zoom > 0 && !img.dataset.fb) {
-            img.dataset.fb = '1';
+          if (zoom > 0 && !fb) {
+            fb = true;
             img.classList.add('fallback');
             img.style.backgroundImage = `url("${LAYERS[layerId].url(x >> 1, y >> 1, zoom - 1)}")`;
             img.style.backgroundSize = '200% 200%';
             img.style.backgroundPosition = `${(x & 1) * 100}% ${(y & 1) * 100}%`;
+            img.style.backgroundRepeat = 'no-repeat';
           }
-          img.removeAttribute('src'); // évite l'icône "image cassée" par-dessus le fond
+          img.src = BLANK_PX; // pixel transparent : <img> valide, donc pas de bordure "image cassée"
           finish();
           // réessaie la vraie tuile en tâche de fond (récupère un throttle transitoire)
           if (++tries <= 2) setTimeout(() => { if (img.isConnected) img.src = url; }, 700 * tries);
