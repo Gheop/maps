@@ -36,10 +36,15 @@ export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a }) {
 }
 
 function resize() {
+  const c = (vpw && vph) ? getView() : null; // centre courant avant redimensionnement
   vpw = vbEl.clientWidth; vph = vbEl.clientHeight;
   tilesX = Math.ceil(vpw / TILE) + 1;
   tilesY = Math.ceil(vph / TILE) + 1;
   canvas.width = vpw; canvas.height = vph;
+  if (c) { // re-ancre le centre (sans vider les tuiles, déjà valides au même zoom)
+    mapEl.style.left = Math.round(vpw / 2 - lonToPx(c.lon, zoom)) + 'px';
+    mapEl.style.top = Math.round(vph / 2 - latToPx(c.lat, zoom)) + 'px';
+  }
   render();
 }
 
