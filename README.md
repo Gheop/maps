@@ -11,7 +11,7 @@ Pour qui : ceux qui veulent une carte web qui démarre vite, tient dans un seul 
 ## Fonctions
 
 - 5 calques : Plan (OSM), Satellite (Esri), Relief (OpenTopoMap), Toner et Aquarelle (Stadia/Stamen)
-- Recherche de lieu (Nominatim) et calcul d'itinéraire (OSRM)
+- Recherche de lieu (Photon) et calcul d'itinéraire (OSRM)
 - Géolocalisation
 - Permalien `#calque/zoom/lat/lon` dans l'URL (calque inclus, donc partageable et conservé au rafraîchissement)
 - Comblage des tuiles manquantes par la tuile parente dézoomée
@@ -38,7 +38,7 @@ PORT=3000 ./maps
 
 Ouvrir http://localhost:8080. Le front parle au proxy via deux routes :
 
-- `GET /api/geocode?q=...` → recherche Nominatim (mise en cache)
+- `GET /api/geocode?q=...&lat=&lon=` → recherche Photon, biais position optionnel (mise en cache)
 - `GET /api/route?from=...&to=...` → itinéraire OSRM
 - `GET /healthz` → sonde de vivacité
 
@@ -55,6 +55,11 @@ Les tuiles sont chargées directement depuis les fournisseurs côté navigateur.
 MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
+
+### v1.2.3 — Recherche via Photon (2026-06-21)
+
+- Le géocodage passe de Nominatim à Photon (Komoot) : recherche ~110 ms au lieu de 1 à 8 s, et plus de throttling. Le proxy normalise la réponse au format attendu, biais vers la zone affichée
+- Réponse Photon (GeoJSON) convertie côté serveur, donc aucun changement de contrat pour le front
 
 ### v1.2.2 — Recherche et itinéraire (2026-06-21)
 

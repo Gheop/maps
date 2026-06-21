@@ -1,11 +1,13 @@
 // Géocodage avec cache mémoire : une même recherche n'interroge le réseau qu'une fois.
 const cache = new Map();
 
-export async function geocode(q) {
+export async function geocode(q, lat, lon) {
   const key = (q || '').trim().toLowerCase();
   if (!key) return [];
   if (cache.has(key)) return cache.get(key);
-  const r = await fetch('/api/geocode?q=' + encodeURIComponent(q));
+  let url = '/api/geocode?q=' + encodeURIComponent(q);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) url += '&lat=' + lat + '&lon=' + lon; // biais vers la vue courante
+  const r = await fetch(url);
   if (!r.ok) return [];
   const a = await r.json();
   const result = Array.isArray(a) ? a : [];

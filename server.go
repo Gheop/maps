@@ -9,19 +9,19 @@ import (
 type server struct {
 	mux           *http.ServeMux
 	web           http.Handler
-	client        *http.Client
-	nominatimBase string
-	osrmBase      string
-	cache         *lruCache
+	client     *http.Client
+	photonBase string
+	osrmBase   string
+	cache      *lruCache
 }
 
 func newServer(webRoot fs.FS) *server {
 	s := &server{
-		web:           http.FileServer(http.FS(webRoot)),
-		client:        &http.Client{Timeout: 8 * time.Second},
-		nominatimBase: "https://nominatim.openstreetmap.org",
-		osrmBase:      "https://router.project-osrm.org",
-		cache:         newLRUCache(512),
+		web:        http.FileServer(http.FS(webRoot)),
+		client:     &http.Client{Timeout: 8 * time.Second},
+		photonBase: "https://photon.komoot.io",
+		osrmBase:   "https://router.project-osrm.org",
+		cache:      newLRUCache(512),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.handleHealth)

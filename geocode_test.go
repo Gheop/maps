@@ -25,11 +25,11 @@ func TestGeocodeProxiesAndCaches(t *testing.T) {
 			t.Errorf("query = %q", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`[{"lat":"45.8","lon":"0.09"}]`))
+		w.Write([]byte(`{"features":[{"geometry":{"coordinates":[0.09,45.8]},"properties":{"name":"Coulonges"}}]}`))
 	}))
 	defer ts.Close()
 	s := newTestServer()
-	s.nominatimBase = ts.URL
+	s.photonBase = ts.URL
 
 	for i := 0; i < 2; i++ {
 		rec := httptest.NewRecorder()
@@ -53,11 +53,11 @@ func TestGeocodeEscapesQuery(t *testing.T) {
 			t.Errorf("upstream q = %q, want %q", got, want)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`[]`))
+		w.Write([]byte(`{"features":[]}`))
 	}))
 	defer ts.Close()
 	s := newTestServer()
-	s.nominatimBase = ts.URL
+	s.photonBase = ts.URL
 
 	rec := httptest.NewRecorder()
 	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/geocode?q="+url.QueryEscape(want), nil))
@@ -73,5 +73,23 @@ func TestGeocodeTooLong(t *testing.T) {
 	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/geocode?q="+q, nil))
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestPhotonToResults(t *testing.T) {
+	in := `{"features":[{"geometry":{"coordinates":[0.0906,45.8331]},"properties":{"name":"Coulonges","county":"Charente","country":"France","extent":[0.08,45.84,0.10,45.82]}}]}`
+	out, err := photonToResults([]byte(in))
+	if err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	s := string(out)
+	for _, want := range []string{`"lat":"45.8331000"`, `"lon":"0.0906000"`, `"display_name":"Coulonges, Charente, France"`} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("output %q missing %q", s, want)
+		}
+	}
+	// boundingbox normalisée [sud, nord, ouest, est] = [minLat, maxLat, minLon, maxLon]
+	if !strings.Contains(s, `"boundingbox":["45.8200000","45.8400000","0.0800000","0.1000000"]`) {
+		t.Fatalf("boundingbox mal normalisée : %q", s)
 	}
 }
