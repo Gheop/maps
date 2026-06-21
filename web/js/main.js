@@ -1,7 +1,8 @@
-import { initMap, setLayer, getLayer, clearRoute } from './map.js';
-import { searchPlace } from './search.js';
+import { initMap, setLayer, getLayer, clearRoute, getView } from './map.js';
+import { searchPlace, showPlace } from './search.js';
 import { computeRoute } from './route.js';
 import { initGeo } from './geo.js';
+import { attachAutocomplete } from './autocomplete.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -73,6 +74,19 @@ s.addEventListener('keydown', (e) => {
   else if (e.key === 'Escape' && !s.value) { if (routeMode) setRouteMode(false); searchBox.classList.add('collapsed'); s.blur(); }
 });
 arr.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+
+// Autocomplete (Photon) : suggestions à la frappe, biaisées vers la zone affichée.
+const bias = () => { const c = getView(); return { lat: c.lat, lon: c.lon }; };
+attachAutocomplete(s, {
+  anchor: searchBox,
+  getBias: bias,
+  onPick: (r) => { if (routeMode) { if (arr.value.trim()) go(); } else { showPlace(r); } },
+});
+attachAutocomplete(arr, {
+  anchor: routeRow,
+  getBias: bias,
+  onPick: () => { if (s.value.trim()) go(); },
+});
 
 initGeo($('geo-btn'));
 

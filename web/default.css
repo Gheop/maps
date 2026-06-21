@@ -28,6 +28,12 @@ canvas.overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-in
 #route-out { position: fixed; top: 94px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.92); border-radius: 4px; padding: 3px 12px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.3); z-index: 10; }
 #route-out:empty { display: none; }
 
+/* menu d'autocomplete (positionné en JS sous la barre) */
+.ac-list { position: fixed; z-index: 20; background: rgba(255,255,255,.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.28); overflow-y: auto; max-height: 320px; }
+.ac-list[hidden] { display: none; }
+.ac-item { padding: 8px 14px; cursor: pointer; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-item:hover, .ac-item.active { background: rgba(37,99,235,.15); }
+
 #layers { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; align-items: stretch; width: max-content; }
 .layer-btn { display: flex; align-items: center; gap: 6px; border: 0; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); padding: 5px 8px; cursor: pointer; font: inherit; box-shadow: 0 1px 3px rgba(0,0,0,.3); border-radius: 4px; text-align: left; }
 .layer-btn[hidden] { display: none; } /* sinon display:flex écrase l'attribut hidden */
