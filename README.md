@@ -11,7 +11,7 @@ Pour qui : ceux qui veulent une carte web qui démarre vite, tient dans un seul 
 ## Fonctions
 
 - 5 calques : Plan (OSM), Satellite (Esri), Relief (OpenTopoMap), Toner et Aquarelle (Stadia/Stamen)
-- Recherche de lieu (Photon) et calcul d'itinéraire (OSRM)
+- Recherche de lieu (Photon) avec autocomplete, et calcul d'itinéraire (OSRM)
 - Géolocalisation
 - Permalien `#calque/zoom/lat/lon` dans l'URL (calque inclus, donc partageable et conservé au rafraîchissement)
 - Comblage des tuiles manquantes par la tuile parente dézoomée
@@ -55,6 +55,12 @@ Les tuiles sont chargées directement depuis les fournisseurs côté navigateur.
 MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
+
+### v1.3.0 — Autocomplete (2026-06-21)
+
+- Suggestions de lieux à la frappe (debounce 180 ms, dès 3 caractères), biaisées vers la zone affichée, navigation clavier + clic, menu translucide
+- Câblé sur la recherche et le champ d'arrivée d'itinéraire ; le clic pose le résultat sans nouvelle requête
+- Dédoublonnage des résultats côté proxy
 
 ### v1.2.3 — Recherche via Photon (2026-06-21)
 

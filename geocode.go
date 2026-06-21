@@ -45,7 +45,7 @@ func (s *server) handleGeocode(w http.ResponseWriter, r *http.Request) {
 		writeCached(w, body, ctype)
 		return
 	}
-	u := s.photonBase + "/api/?limit=5&lang=fr&q=" + url.QueryEscape(q)
+	u := s.photonBase + "/api/?limit=8&lang=fr&q=" + url.QueryEscape(q)
 	if lat, lon := r.URL.Query().Get("lat"), r.URL.Query().Get("lon"); lat != "" && lon != "" {
 		if _, e1 := strconv.ParseFloat(lat, 64); e1 == nil {
 			if _, e2 := strconv.ParseFloat(lon, 64); e2 == nil {
@@ -75,15 +75,21 @@ func photonToResults(raw []byte) ([]byte, error) {
 		return nil, err
 	}
 	results := make([]geoResult, 0, len(pr.Features))
+	seen := make(map[string]bool)
 	for _, f := range pr.Features {
 		if len(f.Geometry.Coordinates) < 2 {
 			continue
 		}
 		p := f.Properties
+		label := photonLabel(p.Name, p.City, p.County, p.State, p.Country)
+		if label == "" || seen[label] { // dédoublonne (Photon renvoie parfois nœud + limite admin)
+			continue
+		}
+		seen[label] = true
 		res := geoResult{
 			Lat:         strconv.FormatFloat(f.Geometry.Coordinates[1], 'f', 7, 64),
 			Lon:         strconv.FormatFloat(f.Geometry.Coordinates[0], 'f', 7, 64),
-			DisplayName: photonLabel(p.Name, p.City, p.County, p.State, p.Country),
+			DisplayName: label,
 		}
 		if len(p.Extent) == 4 {
 			// Photon extent [minLon, maxLat, maxLon, minLat] -> Nominatim boundingbox [sud, nord, ouest, est]
