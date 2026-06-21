@@ -56,6 +56,11 @@ MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
+### v1.2.2 — Recherche et itinéraire (2026-06-21)
+
+- Cache mémoire des géocodages : une recherche déjà faite ne refait aucune requête réseau (instantanée)
+- Simplification de la polyline d'itinéraire (Douglas-Peucker) : un trajet longue distance passe de plusieurs milliers de points à environ un millier, tracé identique mais bien moins de calculs au rendu
+
 ### v1.2.1 — Pinch fluide (2026-06-21)
 
 - Le pinch sur mobile fait un zoom en direct (scale `transform`) pendant le geste, comme la molette, et commit le niveau au lever des doigts ; le pan reprend avec le doigt restant
