@@ -56,6 +56,10 @@ MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
+### v1.2.1 — Pinch fluide (2026-06-21)
+
+- Le pinch sur mobile fait un zoom en direct (scale `transform`) pendant le geste, comme la molette, et commit le niveau au lever des doigts ; le pan reprend avec le doigt restant
+
 ### v1.2.0 — Déplacement et zoom à fond (2026-06-21)
 
 - Déplacement par `transform: translate3d` (compositeur GPU) au lieu d'un re-rendu complet à chaque frame ; re-tuilage seulement par paliers
