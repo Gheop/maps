@@ -319,7 +319,34 @@ function drawOverlay() {
   }
 }
 
-export function setRoute(coords) { routeCoords = coords; drawOverlay(); }
+// Douglas-Peucker : réduit la polyline (tolérance ~0.0001° ≈ 11 m, imperceptible) pour
+// projeter beaucoup moins de points à chaque rendu (un Paris-Lyon = 8576 -> ~1000 points).
+function simplifyRoute(coords) {
+  const n = coords ? coords.length : 0;
+  if (n < 80) return coords || null;
+  const eps = 0.0001;
+  const keep = new Uint8Array(n); keep[0] = keep[n - 1] = 1;
+  const stack = [[0, n - 1]];
+  while (stack.length) {
+    const seg = stack.pop(), s = seg[0], e = seg[1];
+    const ax = coords[s][0], ay = coords[s][1], bx = coords[e][0], by = coords[e][1];
+    const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy || 1e-12;
+    let maxD = 0, idx = -1;
+    for (let i = s + 1; i < e; i++) {
+      const px = coords[i][0], py = coords[i][1];
+      const t = ((px - ax) * dx + (py - ay) * dy) / len2;
+      const cx = ax + t * dx, cy = ay + t * dy;
+      const d = (px - cx) * (px - cx) + (py - cy) * (py - cy);
+      if (d > maxD) { maxD = d; idx = i; }
+    }
+    if (idx > 0 && Math.sqrt(maxD) > eps) { keep[idx] = 1; stack.push([s, idx], [idx, e]); }
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) if (keep[i]) out.push(coords[i]);
+  return out;
+}
+
+export function setRoute(coords) { routeCoords = simplifyRoute(coords); drawOverlay(); }
 export function clearRoute() { routeCoords = null; drawOverlay(); }
 
 export function addMarker(lat, lon) {

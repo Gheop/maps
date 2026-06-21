@@ -1,14 +1,13 @@
 import { setView, fitBounds, addMarker } from './map.js';
+import { geocode } from './geocode.js';
 
 let marker = null;
 
 // Géocode une requête et recentre la carte (marqueur sur le 1er résultat).
 export async function searchPlace(q) {
   if (!q) return;
-  const r = await fetch('/api/geocode?q=' + encodeURIComponent(q));
-  if (!r.ok) return;
-  const a = await r.json();
-  if (!Array.isArray(a) || !a.length) return;
+  const a = await geocode(q);
+  if (!a.length) return;
   const p = a[0];
   if (marker) marker.remove();
   marker = addMarker(+p.lat, +p.lon);

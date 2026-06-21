@@ -1,11 +1,9 @@
 import { setRoute, clearRoute, fitBounds } from './map.js';
+import { geocode } from './geocode.js';
 
 async function geocodeOne(q) {
-  if (!q) return null;
-  const r = await fetch('/api/geocode?q=' + encodeURIComponent(q));
-  if (!r.ok) return null;
-  const a = await r.json();
-  return Array.isArray(a) && a.length ? { lat: +a[0].lat, lon: +a[0].lon } : null;
+  const a = await geocode(q);
+  return a.length ? { lat: +a[0].lat, lon: +a[0].lon } : null;
 }
 
 // Géocode départ + arrivée, calcule l'itinéraire OSRM, le trace et écrit dist/durée.
