@@ -440,25 +440,43 @@ function twoMid(p) { const [a, b] = [...p.values()]; return { x: (a.x + b.x) / 2
 
 function bindPointer() {
   const pts = new Map();
-  let lx = 0, ly = 0, pinch = 0;
+  let lx = 0, ly = 0;
+  // pinch : scale en direct (transform), commit du zoom au lever des doigts (comme la molette)
+  let pinching = false, pStartDist = 1, pStartZoom = 0, pSx = 0, pSy = 0, pScale = 1, pPrev = 0;
+  const startPinch = () => {
+    if (panRaf) { cancelAnimationFrame(panRaf); panRaf = 0; }
+    commitPan();
+    pStartDist = Math.max(1, twoDist(pts));
+    const m = twoMid(pts);
+    pStartZoom = zoom; pSx = m.x; pSy = m.y; pScale = 1; pPrev = zoom; pinching = true;
+    if (!reduceMotionMQ.matches) mapEl.style.transformOrigin = pSx + 'px ' + pSy + 'px';
+  };
+  const movePinch = () => {
+    pScale = twoDist(pts) / pStartDist;
+    const target = clamp(Math.round(pStartZoom + Math.log2(pScale)), 0, zoomMax);
+    if (target !== pPrev) { prefetch(target); pPrev = target; } // précharge le niveau visé pendant le geste
+    if (!reduceMotionMQ.matches) {
+      const t = `scale(${pScale})`;
+      mapEl.style.transform = t;
+      if (canvas) canvas.style.transform = t;
+    }
+  };
+  const endPinch = () => {
+    pinching = false;
+    mapEl.style.transform = ''; mapEl.style.transformOrigin = '';
+    if (canvas) canvas.style.transform = '';
+    commitZoom(clamp(Math.round(pStartZoom + Math.log2(pScale)), 0, zoomMax), pSx, pSy);
+  };
   vbEl.addEventListener('pointerdown', (e) => {
     vbEl.setPointerCapture(e.pointerId);
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 1) { lx = e.clientX; ly = e.clientY; }
-    else if (pts.size === 2) { if (panRaf) { cancelAnimationFrame(panRaf); panRaf = 0; } commitPan(); pinch = twoDist(pts); }
+    else if (pts.size === 2) startPinch();
   });
   vbEl.addEventListener('pointermove', (e) => {
     if (!pts.has(e.pointerId)) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pts.size >= 2) {
-      const d = twoDist(pts);
-      if (pinch && Math.abs(Math.log2(d / pinch)) >= 1) {
-        const m = twoMid(pts);
-        zoomInstant(d > pinch ? 1 : -1, m.x, m.y);
-        pinch = d;
-      }
-      return;
-    }
+    if (pts.size >= 2) { if (pinching) movePinch(); return; }
     // accumule le déplacement écran ; le rendu (translate) se fait une fois par frame
     dragDX += e.clientX - lx; dragDY += e.clientY - ly;
     lx = e.clientX; ly = e.clientY;
@@ -466,7 +484,10 @@ function bindPointer() {
   }, { passive: true });
   const end = (e) => {
     pts.delete(e.pointerId);
-    if (pts.size === 1) { const p = [...pts.values()][0]; lx = p.x; ly = p.y; pinch = 0; }
+    if (pinching && pts.size < 2) {
+      endPinch();
+      if (pts.size === 1) { const p = [...pts.values()][0]; lx = p.x; ly = p.y; } // reprend le pan avec le doigt restant
+    } else if (pts.size === 1) { const p = [...pts.values()][0]; lx = p.x; ly = p.y; }
     else if (pts.size === 0) { if (panRaf) { cancelAnimationFrame(panRaf); panRaf = 0; } commitPan(); }
   };
   vbEl.addEventListener('pointerup', end, { passive: true });
