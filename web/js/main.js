@@ -90,6 +90,25 @@ attachAutocomplete(arr, {
 
 initGeo($('geo-btn'));
 
+// Partager : lien natif sur mobile, sinon copie dans le presse-papier + toast
+const shareBtn = $('share-btn'), toast = $('toast');
+let toastTimer = 0;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+shareBtn.addEventListener('click', async () => {
+  const url = location.href;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Gheop Maps', url }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(url); showToast('Lien copié'); }
+  catch { showToast(url); }
+});
+
 // Service Worker : cache des tuiles (revisites instantanées + hors-ligne)
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));

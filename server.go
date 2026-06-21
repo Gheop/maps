@@ -2,9 +2,14 @@ package main
 
 import (
 	"io/fs"
+	"mime"
 	"net/http"
 	"time"
 )
+
+func init() {
+	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
+}
 
 type server struct {
 	mux           *http.ServeMux

@@ -52,9 +52,14 @@ canvas.overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-in
 #geo-btn { position: fixed; bottom: 140px; right: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #4a4a4a; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 11; }
 #geo-btn:hover { color: #2563eb; }
 #geo-btn.loading { opacity: .5; }
+#share-btn { position: fixed; bottom: 188px; right: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #4a4a4a; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); z-index: 11; }
+#share-btn:hover { color: #2563eb; }
+#toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(8px); background: rgba(30,30,30,.92); color: #fff; font-size: 13px; padding: 8px 16px; border-radius: 20px; z-index: 30; opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; max-width: 80vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 /* globe animé pendant la recherche */
 #bs.loading { background: #fff url('/loading.gif') no-repeat center / 20px; color: transparent; }
-#ladder { position: fixed; bottom: 10px; left: 10px; background: rgba(255,255,255,.7); padding: 2px 6px; font-size: 11px; border: 1px solid #999; border-bottom-width: 3px; z-index: 10; }
+/* échelle : bracket ⊔ dont la largeur correspond à la distance affichée */
+#ladder { position: fixed; bottom: 10px; left: 10px; box-sizing: border-box; padding: 1px 2px 2px; font-size: 11px; line-height: 1.3; text-align: center; white-space: nowrap; color: #222; background: rgba(255,255,255,.6); border: 2px solid #333; border-top: 0; z-index: 10; }
 #attribution { position: fixed; bottom: 0; right: 134px; background: rgba(255,255,255,.7); font-size: 11px; padding: 2px 6px; z-index: 10; }
 #attribution a { color: #333; }
 

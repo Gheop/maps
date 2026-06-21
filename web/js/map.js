@@ -8,7 +8,6 @@ const LAYERS = {
   toner: { url: (x, y, z) => `https://tiles.stadiamaps.com/tiles/stamen_toner/${z}/${x}/${y}.png`, max: 20, attr: '© <a href="https://stadiamaps.com/">Stadia Maps</a>, © Stamen, © OpenStreetMap' },
   aquarelle: { url: (x, y, z) => `https://tiles.stadiamaps.com/tiles/stamen_watercolor/${z}/${x}/${y}.jpg`, max: 15, attr: '© <a href="https://stadiamaps.com/">Stadia Maps</a>, © Stamen, © OpenStreetMap' },
 };
-const LADDER = ['10000 km', '5000 km', '2000 km', '2000 km', '1000 km', '500 km', '200 km', '100 km', '50 km', '20 km', '10 km', '5 km', '2 km', '1 km', '500 m', '250 m', '100 m', '50 m', '20 m', '10 m', '5 m'];
 const BLANK_PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; // 1x1 transparent
 
 let mapEl, vbEl, ladderEl, attrEl, zoomBarEl, lmapEl, maskEl, lmapTilesEl, canvas, ctx;
@@ -72,7 +71,6 @@ export function setView(lat, lon, z = zoom) {
   cy = latToPx(lat, zoom);
   clearTiles();
   render();
-  updateLadder();
   updateZoomBar();
 }
 
@@ -97,7 +95,6 @@ function commitZoom(z2, sx = vpw / 2, sy = vph / 2) {
   cy = latToPx(lat, zoom) - (sy - vph / 2);
   markStale(fromZoom);
   render();
-  updateLadder();
   updateZoomBar();
 }
 
@@ -297,6 +294,7 @@ function render() {
   }
   drawOverlay();
   updateMinimap();
+  updateLadder();
   scheduleHash();
   clearTimeout(idleTimer); idleTimer = setTimeout(prefetchAround, 250); // anneau préchargé une fois posé
 }
@@ -369,7 +367,6 @@ export function setLayer(id) {
   if (zoom > zoomMax) { const c = getView(); zoom = zoomMax; cx = lonToPx(c.lon, zoom); cy = latToPx(c.lat, zoom); }
   clearTiles();
   render();
-  updateLadder();
   updateZoomBar();
   if (attrEl) attrEl.innerHTML = LAYERS[id].attr;
   scheduleHash(); // garde le calque dans l'URL (rafraîchissement + partage)
@@ -377,7 +374,20 @@ export function setLayer(id) {
 
 export function getLayer() { return layerId; }
 
-function updateLadder() { if (ladderEl) ladderEl.textContent = LADDER[zoom] || ''; }
+// Échelle réelle : mètres/pixel au centre (dépend de la latitude en Mercator), arrondi à 1/2/5.
+function updateLadder() {
+  if (!ladderEl) return;
+  const lat = pxToLat(cy, zoom);
+  const mpp = 156543.03392 * Math.cos(lat * Math.PI / 180) / (2 ** zoom);
+  if (!isFinite(mpp) || mpp <= 0) return;
+  let dist = mpp * 90; // distance brute pour ~90 px
+  const pow = 10 ** Math.floor(Math.log10(dist));
+  const f = dist / pow;
+  const nice = f >= 5 ? 5 : f >= 2 ? 2 : 1;
+  dist = nice * pow;
+  ladderEl.style.width = Math.round(dist / mpp) + 'px';
+  ladderEl.textContent = dist >= 1000 ? (dist / 1000) + ' km' : Math.round(dist) + ' m';
+}
 
 // --- Échelle de zoom en pyramide (cliquable) ---
 function buildZoomBar() {

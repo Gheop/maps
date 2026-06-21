@@ -18,6 +18,8 @@ Pour qui : ceux qui veulent une carte web qui démarre vite, tient dans un seul 
 - Minimap régionale, échelle, pyramide de zoom cliquable
 - Double-clic pour zoomer (shift pour dézoomer)
 - Fonctionne hors-ligne et revisites instantanées (Service Worker)
+- Installable comme application (PWA)
+- Bouton partager le lien de la vue courante
 
 ## Installation
 
@@ -55,6 +57,12 @@ Les tuiles sont chargées directement depuis les fournisseurs côté navigateur.
 MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
+
+### v1.4.0 — Installable, partage, échelle exacte (2026-06-21)
+
+- Application installable (PWA) : manifest, icônes, thème ; complète le mode hors-ligne déjà en place
+- Bouton partager : lien natif sur mobile, copie dans le presse-papier sinon, avec confirmation
+- Échelle exacte calculée selon la latitude (mètres/pixel en Mercator) au lieu d'une table fixe ; la barre suit aussi les déplacements nord-sud
 
 ### v1.3.0 — Autocomplete (2026-06-21)
 
