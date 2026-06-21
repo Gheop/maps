@@ -99,15 +99,33 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
 }
+// En mode itinéraire avec deux lieux, on partage le trajet (?from=&to=) ; sinon la vue (hash).
+function shareUrl() {
+  if (routeMode && s.value.trim() && arr.value.trim()) {
+    return location.origin + '/?from=' + encodeURIComponent(s.value.trim()) + '&to=' + encodeURIComponent(arr.value.trim()) + location.hash;
+  }
+  return location.href;
+}
 shareBtn.addEventListener('click', async () => {
-  const url = location.href;
+  const url = shareUrl();
+  const isRoute = routeMode && s.value.trim() && arr.value.trim();
   if (navigator.share) {
     try { await navigator.share({ title: 'Gheop Maps', url }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
   }
-  try { await navigator.clipboard.writeText(url); showToast('Lien copié'); }
+  try { await navigator.clipboard.writeText(url); showToast(isRoute ? 'Lien de l’itinéraire copié' : 'Lien copié'); }
   catch { showToast(url); }
 });
+
+// Ouverture d'un lien d'itinéraire partagé : ?from=...&to=...
+const routeParams = new URLSearchParams(location.search);
+const qFrom = routeParams.get('from'), qTo = routeParams.get('to');
+if (qFrom && qTo) {
+  searchBox.classList.remove('collapsed');
+  setRouteMode(true);
+  s.value = qFrom; arr.value = qTo;
+  go();
+}
 
 // Service Worker : cache des tuiles (revisites instantanées + hors-ligne)
 if ('serviceWorker' in navigator) {

@@ -19,7 +19,7 @@ Pour qui : ceux qui veulent une carte web qui démarre vite, tient dans un seul 
 - Double-clic pour zoomer (shift pour dézoomer)
 - Fonctionne hors-ligne et revisites instantanées (Service Worker)
 - Installable comme application (PWA)
-- Bouton partager le lien de la vue courante
+- Bouton partager le lien de la vue ou de l'itinéraire
 
 ## Installation
 
@@ -57,6 +57,10 @@ Les tuiles sont chargées directement depuis les fournisseurs côté navigateur.
 MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
+
+### v1.4.1 — Partage d'itinéraire (2026-06-21)
+
+- Le bouton partager encode l'itinéraire dans le lien (`?from=…&to=…`) quand il y en a un ; à l'ouverture, le trajet est recalculé et affiché. Sinon il partage la vue comme avant
 
 ### v1.4.0 — Installable, partage, échelle exacte (2026-06-21)
 
