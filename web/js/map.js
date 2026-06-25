@@ -248,18 +248,11 @@ function render() {
         img.fetchPriority = 'high'; // tuiles visibles prioritaires sur les préchargements
         img.style.zIndex = '2';
         const url = LAYERS[layerId].url(x, y, zoom);
-        let tries = 0, settled = false, fb = false;
-        const finish = () => { if (!settled) { settled = true; done(); } };
-        pending++;
-        img.addEventListener('load', () => {
-          if (img.src.startsWith('data:')) return; // pixel transparent du fallback, pas la vraie tuile
-          img.classList.add('loaded');
-          img.classList.remove('fallback');
-          img.style.backgroundImage = '';
-          finish();
-        });
-        img.addEventListener('error', () => {
-          // comble le trou tout de suite avec la tuile parent (zoom-1) mise à l'échelle
+        let tries = 0, settled = false, fb = false, wd = 0;
+        const loaded = () => img.classList.contains('loaded');
+        const finish = () => { if (!settled) { settled = true; done(); } clearTimeout(wd); };
+        const fail = () => {
+          // comble le trou avec la tuile parent (zoom-1) mise à l'échelle
           // (fond CSS, requête async qui ne bloque pas les autres tuiles)
           if (zoom > 0 && !fb) {
             fb = true;
@@ -269,12 +262,24 @@ function render() {
             img.style.backgroundPosition = `${(x & 1) * 100}% ${(y & 1) * 100}%`;
             img.style.backgroundRepeat = 'no-repeat';
           }
-          img.src = BLANK_PX; // pixel transparent : <img> valide, donc pas de bordure "image cassée"
+          img.src = BLANK_PX; // pixel transparent : annule une requête bloquée, et pas de bordure "image cassée"
           finish();
-          // réessaie la vraie tuile en tâche de fond (récupère un throttle transitoire)
-          if (++tries <= 2) setTimeout(() => { if (img.isConnected) img.src = url; }, 700 * tries);
+          // relance la vraie tuile (throttle transitoire du fournisseur), backoff exponentiel + jitter
+          if (++tries <= 3) setTimeout(() => { if (img.isConnected && !loaded()) { img.src = url; arm(); } }, 600 * 2 ** (tries - 1) + Math.floor(Math.random() * 250));
+        };
+        // chien de garde : une requête peut rester suspendue sans jamais lever 'error' (tuile grise figée)
+        const arm = () => { clearTimeout(wd); wd = setTimeout(() => { if (!loaded()) fail(); }, 6000); };
+        pending++;
+        img.addEventListener('load', () => {
+          if (img.src.startsWith('data:')) return; // pixel transparent du fallback, pas la vraie tuile
+          img.classList.add('loaded');
+          img.classList.remove('fallback');
+          img.style.backgroundImage = '';
+          finish();
         });
+        img.addEventListener('error', fail);
         img.src = url;
+        arm();
         frag.appendChild(img);
       }
       img.style.left = (x * TILE - ox) + 'px';

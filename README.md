@@ -58,6 +58,11 @@ MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
+### v1.4.2 — Tuiles bloquées rattrapées (2026-06-25)
+
+- Chien de garde sur le chargement des tuiles : une requête restée suspendue (le fournisseur ne renvoie ni `load` ni `error`, fréquent quand le satellite throttle un paquet de tuiles) est rattrapée après 6 s, comblée par la tuile parente floue puis relancée, au lieu de rester grise figée
+- Relance en backoff exponentiel (0,6 / 1,2 / 2,4 s) avec jitter, 3 tentatives max ; l'ancien retry ne couvrait que les vraies erreurs réseau
+
 ### v1.4.1 — Partage d'itinéraire (2026-06-21)
 
 - Le bouton partager encode l'itinéraire dans le lien (`?from=…&to=…`) quand il y en a un ; à l'ouverture, le trajet est recalculé et affiché. Sinon il partage la vue comme avant
