@@ -58,6 +58,13 @@ MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
+### v1.4.3 — Assets allégés (2026-07-08)
+
+- Icônes PWA converties en WebP lossless via patu.dev (icon-512 42→20 Ko, maskable 24→11 Ko, icon-192 13→7 Ko, pixels identiques) ; `apple-touch-icon` reste en PNG pour la compat iOS
+- Favicon SVG optimisé (772→647 o), rendu inchangé
+- Spinner de recherche en CSS pur au lieu d'un GIF de 9 Ko : une requête réseau et 9 Ko en moins, net à tout écran
+- Capture du README en WebP (1,8 Mo → 468 Ko)
+
 ### v1.4.2 — Tuiles bloquées rattrapées (2026-06-25)
 
 - Chien de garde sur le chargement des tuiles : une requête restée suspendue (le fournisseur ne renvoie ni `load` ni `error`, fréquent quand le satellite throttle un paquet de tuiles) est rattrapée après 6 s, comblée par la tuile parente floue puis relancée, au lieu de rester grise figée

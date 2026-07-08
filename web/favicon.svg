@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs><clipPath id="r"><rect x="2" y="2" width="28" height="28" rx="6"/></clipPath></defs>
-  <g clip-path="url(#r)">
-    <rect x="2" y="2" width="28" height="28" fill="#efe9dc"/>
-    <path d="M6 2 C 12 7 10 13 16 13 C 22 13 22 5 28 7 L28 2 Z" fill="#c2dcab"/>
-    <path d="M2 23 C 8 20 12 26 18 22 C 23 19 28 22 30 21 L30 30 L2 30 Z" fill="#a9d3ec"/>
-    <path d="M3 7 C 12 12 16 20 29 25" stroke="#fff" stroke-width="2.5" fill="none"/>
-  </g>
-  <rect x="2.5" y="2.5" width="27" height="27" rx="5.5" fill="none" stroke="rgba(0,0,0,.18)"/>
-  <path d="M16 6 C 11.6 6 8 9.6 8 14 C 8 20 16 27 16 27 C 16 27 24 20 24 14 C 24 9.6 20.4 6 16 6 Z" fill="#e23a1e"/>
-  <circle cx="16" cy="14" r="3" fill="#fff"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><clipPath id="r"><rect x="2" y="2" width="28" height="28" rx="6"/></clipPath></defs><g clip-path="url(#r)"><path fill="#efe9dc" d="M2 2h28v28H2z"/><path d="M6 2c6 5 4 11 10 11s6-8 12-6V2z" fill="#c2dcab"/><path d="M2 23c6-3 10 3 16-1 5-3 10 0 12-1v9H2z" fill="#a9d3ec"/><path d="M3 7c9 5 13 13 26 18" stroke="#fff" stroke-width="2.5" fill="none"/></g><rect x="2.5" y="2.5" width="27" height="27" rx="5.5" fill="none" stroke="rgba(0,0,0,.18)"/><path d="M16 6c-4.4 0-8 3.6-8 8 0 6 8 13 8 13s8-7 8-13c0-4.4-3.6-8-8-8z" fill="#e23a1e"/><circle cx="16" cy="14" r="3" fill="#fff"/></svg>
