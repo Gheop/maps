@@ -4,7 +4,7 @@ Un clone de Google Maps ultra-léger : carte glissante en vanilla JS (zéro dép
 
 En ligne : **https://maps.gheop.com/**
 
-![Gheop Maps](assets/screenshot.png)
+![Gheop Maps](assets/screenshot.webp)
 
 Pour qui : ceux qui veulent une carte web qui démarre vite, tient dans un seul binaire et se déploie sans toolchain front.
 
