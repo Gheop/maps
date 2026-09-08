@@ -29,18 +29,23 @@ export function initMap({ mapEl: m, vbEl: v, ladderEl: l, attrEl: a, zoomBarEl: 
   canvas.className = 'overlay';
   vbEl.appendChild(canvas);
   ctx = canvas.getContext('2d');
+  // Vue initiale (hash ou défaut) posée AVANT le premier rendu : sinon resize() rendait
+  // le zoom 2 sur le coin du monde (13 tuiles demandées puis jetées) avant setView.
+  const h = parseHash(location.hash);
+  if (h && h.layer && LAYERS[h.layer]) { layerId = h.layer; zoomMax = LAYERS[h.layer].max; }
+  const view0 = h || { lat: 46.6, lon: 1.88, zoom: 6 };
+  zoom = clamp(Math.round(view0.zoom), 0, zoomMax);
+  cx = lonToPx(view0.lon, zoom);
+  cy = latToPx(view0.lat, zoom);
   buildZoomBar();
   bindMinimap();
+  if (attrEl) attrEl.innerHTML = LAYERS[layerId].attr;
   resize();
+  updateZoomBar();
   window.addEventListener('resize', resize);
   bindPointer();
   bindWheel();
   bindKeys();
-  const h = parseHash(location.hash);
-  if (h && h.layer && LAYERS[h.layer]) { layerId = h.layer; zoomMax = LAYERS[h.layer].max; buildZoomBar(); }
-  if (attrEl) attrEl.innerHTML = LAYERS[layerId].attr;
-  if (h) setView(h.lat, h.lon, h.zoom);
-  else setView(46.6, 1.88, 6);
 }
 
 function resize() {

@@ -62,23 +62,40 @@ async def metrics(cdp):
     return {x['name']: x['value'] for x in m}
 
 
+LATENCY_MS = 100  # latence émulée seule (débit illimité) : le temps de charge compte les allers-retours en cascade
+
+
 async def load_run(browser):
-    """Octets/requêtes du shell à froid puis à chaud. Sans context.route() : l'interception
-    Playwright désactive le cache HTTP de Chrome (plus de If-None-Match). Tuiles et API
-    sont bloquées au niveau réseau (CDP), ce qui laisse le cache actif."""
+    """Octets/requêtes du shell à froid puis à chaud, et temps jusqu'à la carte (1re requête de
+    tuile) sous latence émulée. Sans context.route() : l'interception Playwright désactive le
+    cache HTTP de Chrome (plus de If-None-Match). Tuiles et API sont bloquées au niveau réseau."""
     ctx = await browser.new_context(viewport={'width': 1280, 'height': 800}, service_workers='block')
     page = await ctx.new_page()
     cdp = await ctx.new_cdp_session(page)
     await cdp.send('Network.enable')
     await cdp.send('Network.setBlockedURLs', {'urls': [f'*{h}/*' for h in TILE_HOSTS] + [f'{BASE}/api/*']})
+    await cdp.send('Network.emulateNetworkConditions', {'offline': False, 'latency': LATENCY_MS,
+                   'downloadThroughput': -1, 'uploadThroughput': -1})
+    # instant où la carte démarre = 1re tuile insérée dans #map (observé depuis la page, avant tout script)
+    await page.add_init_script("""new MutationObserver((ms, o) => { for (const m of ms) if (m.target.id === 'map' && m.addedNodes.length) { window.__mapInit = performance.now(); o.disconnect(); return; } })
+      .observe(document, {childList: true, subtree: true});""")
+    async def timings():
+        hosts = list(TILE_HOSTS)
+        return await page.evaluate("(hosts) => { const n = performance.getEntriesByType('navigation')[0];"
+            " const tiles = performance.getEntriesByType('resource').filter(e => hosts.some(h => e.name.includes(h))).length;"  # bloquées mais comptées
+            " return {map_init_ms: Math.round(window.__mapInit || -1), dcl_ms: Math.round(n.domContentLoadedEventEnd), load_ms: Math.round(n.loadEventEnd), tile_requests: tiles}; }", hosts)
     net = Net(page)
     await page.goto(f'{BASE}/{VIEW}', wait_until='load')
     await page.wait_for_timeout(800)
-    cold = await net.settle()
+    cold = await net.settle(); cold.update(await timings())
+    # garde-fou fonctionnel : la vue du hash est bien celle rendue
+    ok = await page.evaluate("location.hash.startsWith('%s') && document.querySelectorAll('img.tile').length > 0" % VIEW.rsplit('/', 1)[0])  # la carte réécrit le hash à 5 décimales
+    if not ok:
+        raise SystemExit('vue du hash non rendue')
     net.reset()
     await page.reload(wait_until='load')
     await page.wait_for_timeout(800)
-    warm = await net.settle()
+    warm = await net.settle(); warm.update(await timings())
     await ctx.close()
     return cold, warm
 
@@ -131,17 +148,22 @@ def summarize(runs, path):
 
 async def main():
     async with async_playwright() as p:
-        runs = []
+        runs = []; retries = 0
         for i in range(RUNS + 1):  # navigateur neuf par run (pas de dérive avec l'âge du processus)
             browser = await p.chromium.launch()
             r = await one_run(browser)
             await browser.close()
-            if i: runs.append(r)  # run 0 = warmup (JIT, disque), exclu
-    keys = [('cold', 'requests'), ('cold', 'wire_bytes'), ('warm', 'requests'), ('warm', 'wire_bytes'),
+            if i == 0: continue  # run 0 = warmup (JIT, disque), exclu
+            if r['cold']['load_ms'] > 1500 and retries < 3:  # décrochage ~2 s du 1er Chromium du processus : artefact headless, run refait
+                retries += 1; continue
+            runs.append(r)
+    keys = [('cold', 'requests'), ('cold', 'wire_bytes'), ('cold', 'map_init_ms'), ('cold', 'dcl_ms'), ('cold', 'load_ms'), ('cold', 'tile_requests'),
+            ('warm', 'requests'), ('warm', 'wire_bytes'), ('warm', 'map_init_ms'), ('warm', 'load_ms'),
             ('warm', 'body_bytes_200'), ('warm', 'n304'), ('interact_ms', 'ScriptDuration'),
             ('interact_ms', 'LayoutDuration'), ('interact_ms', 'RecalcStyleDuration'), ('interact_ms', 'TaskDuration'),
             ('interact_ms', 'RecalcStyleCount'), ('interact_ms', 'LayoutCount'), ('interact_ms', 'JSHeapUsedMB'), ('interact_ms', 'Nodes'), ('interact_ms', 'tiles_in_dom')]
-    out = {'runs': RUNS, 'summary': {f'{a}.{b}': summarize(runs, (a, b)) for a, b in keys}, 'raw': runs}
+    out = {'runs': len(runs), 'retries': retries, 'summary': {f'{a}.{b}': summarize(runs, (a, b)) for a, b in keys}, 'raw': runs}
     print(json.dumps(out, indent=1))
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
