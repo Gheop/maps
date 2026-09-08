@@ -1,9 +1,17 @@
 # Déploiement
 
-## Build + import (sur gheop.com)
+## Build (en local, podman) + import (sur gheop.com)
 
-    rsync -az --delete --exclude='.git' ./ gheop.com:~/src/maps/
-    ssh gheop.com 'cd ~/src/maps && docker build -f deploy/Dockerfile -t maps:local . && docker save maps:local | sudo k3s ctr images import -'
+Le serveur n'a plus docker ni podman (constaté 2026-09-08). L'image se construit
+en local et se pousse par ssh. Podman nomme l'image `localhost/maps:local` :
+il faut la retaguer en `docker.io/library/maps:local`, sinon k3s (`IfNotPresent`)
+garde l'ancienne `maps:local`.
+
+    podman build -f deploy/Dockerfile -t maps:local .
+    podman save --format docker-archive maps:local | ssh gheop.com 'sudo k3s ctr images import - && sudo k3s ctr images tag --force localhost/maps:local docker.io/library/maps:local'
+    ssh gheop.com 'sudo kubectl -n maps rollout restart deploy/maps && sudo kubectl -n maps rollout status deploy/maps'
+
+Vérif : `curl -sI https://maps.gheop.com/js/map.js | grep -i etag` doit répondre.
 
 ## Appliquer
 
