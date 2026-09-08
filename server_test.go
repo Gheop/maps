@@ -44,3 +44,27 @@ func TestServesIndex(t *testing.T) {
 		t.Fatalf("missing content-type for index")
 	}
 }
+
+func TestStaticETagRevalidation(t *testing.T) {
+	s := newTestServer()
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	et := rec.Header().Get("ETag")
+	if et == "" || rec.Header().Get("Cache-Control") != "no-cache" {
+		t.Fatalf("headers = %v", rec.Header())
+	}
+	rec = httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("If-None-Match", et)
+	s.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotModified || rec.Body.Len() != 0 {
+		t.Fatalf("status = %d, body = %d octets, want 304 vide", rec.Code, rec.Body.Len())
+	}
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("If-None-Match", `"autre"`)
+	s.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ETag différent : status = %d, want 200", rec.Code)
+	}
+}

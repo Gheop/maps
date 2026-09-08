@@ -22,7 +22,7 @@ type server struct {
 
 func newServer(webRoot fs.FS) *server {
 	s := &server{
-		web:        http.FileServer(http.FS(webRoot)),
+		web:        newStaticHandler(webRoot),
 		client:     &http.Client{Timeout: 8 * time.Second},
 		photonBase: "https://photon.komoot.io",
 		osrmBase:   "https://router.project-osrm.org",
