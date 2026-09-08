@@ -1,5 +1,5 @@
 {
- "label": "etag",
+ "label": "modulepreload",
  "commit": "9efe8e1",
  "env": {
   "go": "go version go1.26.7-X:nodwarf5 linux/amd64",
@@ -9,11 +9,11 @@
  "go_bench": {
   "BenchmarkShellCold": {
    "ns": {
-    "median": 106468.5,
-    "sd_pct": 20.9
+    "median": 147666.0,
+    "sd_pct": 4.5
    },
    "B": {
-    "median": 144361.0,
+    "median": 145132.0,
     "sd_pct": 0.0
    },
    "allocs": {
@@ -23,11 +23,11 @@
   },
   "BenchmarkShellRevalidate": {
    "ns": {
-    "median": 78937.0,
-    "sd_pct": 19.4
+    "median": 103074.5,
+    "sd_pct": 2.2
    },
    "B": {
-    "median": 92076.0,
+    "median": 92075.0,
     "sd_pct": 0.0
    },
    "allocs": {
@@ -45,11 +45,11 @@
   },
   "BenchmarkPhotonToResults": {
    "ns": {
-    "median": 47008.5,
-    "sd_pct": 21.3
+    "median": 61174.5,
+    "sd_pct": 2.8
    },
    "B": {
-    "median": 8107.5,
+    "median": 8109.0,
     "sd_pct": 0.0
    },
    "allocs": {
@@ -59,8 +59,8 @@
   },
   "BenchmarkGeocodeCached": {
    "ns": {
-    "median": 4489.5,
-    "sd_pct": 17.1
+    "median": 5897.5,
+    "sd_pct": 4.2
    },
    "B": {
     "median": 6148.0,
@@ -73,8 +73,8 @@
   },
   "BenchmarkLRUGetSet": {
    "ns": {
-    "median": 232.3,
-    "sd_pct": 14.7
+    "median": 316.9,
+    "sd_pct": 11.9
    },
    "B": {
     "median": 112.0,
@@ -88,22 +88,22 @@
  },
  "ab": {
   "map.js": {
-   "rps": 47405.95,
+   "rps": 33125.8,
    "p50_ms": 1.0,
    "p95_ms": 2.0
   },
   "index": {
-   "rps": 63211.32,
-   "p50_ms": 0.0,
-   "p95_ms": 1.0
+   "rps": 44329.68,
+   "p50_ms": 1.0,
+   "p95_ms": 2.0
   },
   "map.js_if_none_match": {
-   "rps": 85782.79,
+   "rps": 63924.93,
    "p50_ms": 0.0,
    "p95_ms": 1.0
   }
  },
- "server_rss_kb": 21128,
+ "server_rss_kb": 21064,
  "front": {
   "cold.requests": {
    "median": 12,
@@ -111,29 +111,29 @@
    "sd_pct": 0.0
   },
   "cold.wire_bytes": {
-   "median": 53268,
+   "median": 54191,
    "sd": 0.0,
    "sd_pct": 0.0
   },
   "cold.map_init_ms": {
-   "median": 456,
-   "sd": 852.25,
-   "sd_pct": 186.9
+   "median": 347,
+   "sd": 911.07,
+   "sd_pct": 262.6
   },
   "cold.dcl_ms": {
-   "median": 463,
-   "sd": 851.8,
-   "sd_pct": 184.0
+   "median": 351,
+   "sd": 910.85,
+   "sd_pct": 259.5
   },
   "cold.load_ms": {
-   "median": 493,
-   "sd": 845.31,
-   "sd_pct": 171.5
+   "median": 383,
+   "sd": 901.48,
+   "sd_pct": 235.4
   },
   "cold.tile_requests": {
-   "median": 232,
-   "sd": 3.31,
-   "sd_pct": 1.4
+   "median": 218,
+   "sd": 1.91,
+   "sd_pct": 0.9
   },
   "warm.requests": {
    "median": 12,
@@ -146,14 +146,14 @@
    "sd_pct": 0.0
   },
   "warm.map_init_ms": {
-   "median": 423,
-   "sd": 1.92,
-   "sd_pct": 0.5
+   "median": 319,
+   "sd": 2.03,
+   "sd_pct": 0.6
   },
   "warm.load_ms": {
-   "median": 443,
-   "sd": 5.85,
-   "sd_pct": 1.3
+   "median": 337,
+   "sd": 5.82,
+   "sd_pct": 1.7
   },
   "warm.body_bytes_200": {
    "median": 0,
@@ -166,29 +166,29 @@
    "sd_pct": 0.0
   },
   "interact_ms.ScriptDuration": {
-   "median": 157.85,
-   "sd": 46.15,
-   "sd_pct": 29.2
+   "median": 155.24,
+   "sd": 29.19,
+   "sd_pct": 18.8
   },
   "interact_ms.LayoutDuration": {
-   "median": 10.91,
-   "sd": 3.62,
-   "sd_pct": 33.2
+   "median": 10.69,
+   "sd": 2.17,
+   "sd_pct": 20.3
   },
   "interact_ms.RecalcStyleDuration": {
-   "median": 116.63,
-   "sd": 43.15,
-   "sd_pct": 37.0
+   "median": 112.58,
+   "sd": 24.55,
+   "sd_pct": 21.8
   },
   "interact_ms.TaskDuration": {
-   "median": 1456.26,
-   "sd": 595.51,
-   "sd_pct": 40.9
+   "median": 1401.31,
+   "sd": 337.45,
+   "sd_pct": 24.1
   },
   "interact_ms.RecalcStyleCount": {
-   "median": 439,
-   "sd": 34.45,
-   "sd_pct": 7.8
+   "median": 446,
+   "sd": 15.16,
+   "sd_pct": 3.4
   },
   "interact_ms.LayoutCount": {
    "median": 48,
@@ -198,12 +198,12 @@
   "interact_ms.JSHeapUsedMB": {
    "median": 1.29,
    "sd": 0.02,
-   "sd_pct": 1.6
+   "sd_pct": 1.8
   },
   "interact_ms.Nodes": {
-   "median": 352,
-   "sd": 19.72,
-   "sd_pct": 5.6
+   "median": 372,
+   "sd": 27.29,
+   "sd_pct": 7.3
   },
   "interact_ms.tiles_in_dom": {
    "median": 48,

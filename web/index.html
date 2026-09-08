@@ -16,6 +16,17 @@
   <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
   <link rel="preconnect" href="https://tile.opentopomap.org" crossorigin>
   <link rel="stylesheet" href="/default.css">
+  <!-- Préchargement du graphe de modules : sans ça, le navigateur les découvre en cascade
+       (main -> map/search/route/geo/autocomplete -> tilemath/url/geocode), 3 allers-retours. -->
+  <link rel="modulepreload" href="/js/main.js">
+  <link rel="modulepreload" href="/js/map.js">
+  <link rel="modulepreload" href="/js/tilemath.js">
+  <link rel="modulepreload" href="/js/url.js">
+  <link rel="modulepreload" href="/js/search.js">
+  <link rel="modulepreload" href="/js/route.js">
+  <link rel="modulepreload" href="/js/geo.js">
+  <link rel="modulepreload" href="/js/geocode.js">
+  <link rel="modulepreload" href="/js/autocomplete.js">
 </head>
 <body>
   <div id="viewbox"><div id="map"></div></div>
