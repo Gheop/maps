@@ -58,6 +58,13 @@ MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
+### v1.4.4 — Revisites et démarrage plus légers (2026-09-08)
+
+- Le serveur envoie un ETag par fichier : au retour sur le site, le navigateur ne retélécharge plus l'application (2,4 Ko échangés au lieu de 53 Ko, réponses 304)
+- La carte lit la position de l'URL avant son premier rendu : 13 tuiles inutiles de moins demandées à chaque visite
+- Les modules JavaScript sont préchargés depuis la page : la carte démarre un aller-retour réseau plus tôt (deux derrière nginx en HTTP/2)
+- Harnais de mesure dans `bench/` et bilan dans `PERF.md`
+
 ### v1.4.3 — Assets allégés (2026-07-08)
 
 - Icônes PWA converties en WebP lossless via patu.dev (icon-512 42→20 Ko, maskable 24→11 Ko, icon-192 13→7 Ko, pixels identiques) ; `apple-touch-icon` reste en PNG pour la compat iOS
