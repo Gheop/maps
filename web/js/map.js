@@ -91,7 +91,6 @@ export function fitBounds(s, w, n, e) {
 function commitZoom(z2, sx = vpw / 2, sy = vph / 2) {
   z2 = clamp(z2, 0, zoomMax);
   if (z2 === zoom) { render(); return; }
-  removeStale();
   const fromZoom = zoom;
   const lon = pxToLon(sx - vpw / 2 + cx, zoom);
   const lat = pxToLat(sy - vph / 2 + cy, zoom);
@@ -207,25 +206,68 @@ function prefetchAround() {
   }
 }
 
-// Garde les tuiles chargées du niveau de départ, mises à l'échelle en fond.
+const STALE_MAX_DZ = 4;    // au-delà, une floue agrandie x16 n'est plus qu'une tache ; un dézoom rapide de 3-4 crans reste couvert
+const STALE_SAFETY = 6000; // filet de sécurité, aligné sur le chien de garde des tuiles
+
+// Positionne une tuile ; une floue (niveau tz != zoom) est décalée à l'échelle 2^(zoom - tz).
+// La taille, elle, n'est écrite qu'au changement de zoom (markStale) : l'écrire à chaque
+// rendu invalidait le style des 48 tuiles nettes pour rien (+50 % de script au pan/zoom).
+function placeTile(img, ox, oy) {
+  const g = 2 ** (zoom - img.dataset.z);
+  img.style.left = (img.dataset.x * TILE * g - ox) + 'px';
+  img.style.top = (img.dataset.y * TILE * g - oy) + 'px';
+}
+let staleCount = 0;
+
+// Au changement de zoom : les tuiles chargées restent en fond, floues, jusqu'à ce que les
+// nettes qui les recouvrent soient là (pruneStale). Les floues des commits précédents sont
+// gardées aussi tant qu'elles sont à moins de STALE_MAX_DZ niveaux : deux zooms rapprochés
+// ne laissent plus l'écran gris.
 function markStale(fromZoom) {
-  const ox = cx - vpw / 2, oy = cy - vph / 2;
   for (const img of [...mapEl.querySelectorAll('img.tile')]) {
-    const [tz, tx, ty] = img.id.slice(1).split('_').map(Number);
-    if (tz !== fromZoom) continue;
-    if (!img.classList.contains('loaded')) { img.remove(); continue; }
-    const g = 2 ** (zoom - tz);
-    img.style.left = (tx * TILE * g - ox) + 'px';
-    img.style.top = (ty * TILE * g - oy) + 'px';
-    img.style.width = img.style.height = (TILE * g) + 'px';
+    const tz = +img.dataset.z;
+    if ((tz === fromZoom && !img.classList.contains('loaded')) || Math.abs(zoom - tz) > STALE_MAX_DZ) { img.remove(); continue; }
+    img.style.width = img.style.height = (TILE * 2 ** (zoom - tz)) + 'px';
     img.style.zIndex = '1';
     img.classList.add('stale');
   }
+  staleCount = mapEl.querySelectorAll('img.tile.stale').length;
+  clearTimeout(staleTimer);
+  staleTimer = setTimeout(removeStale, STALE_SAFETY);
 }
 
 function removeStale() {
   clearTimeout(staleTimer);
   for (const img of [...mapEl.querySelectorAll('img.tile.stale')]) img.remove();
+  staleCount = 0;
+}
+
+// Retire chaque floue dès que les tuiles nettes qui la recouvrent à l'écran sont chargées,
+// après leur fondu (150 ms) : jamais de gris entre les deux.
+let pruneTimer = 0;
+function schedulePrune() { if (staleCount) { clearTimeout(pruneTimer); pruneTimer = setTimeout(pruneStale, 200); } }
+function pruneStale() {
+  const stale = mapEl.querySelectorAll('img.tile.stale');
+  if (!stale.length) return;
+  const ox = cx - vpw / 2, oy = cy - vph / 2;
+  const vx0 = Math.floor(ox / TILE), vy0 = Math.floor(oy / TILE);
+  const vx1 = Math.floor((ox + vpw) / TILE), vy1 = Math.floor((oy + vph) / TILE);
+  let kept = 0;
+  for (const img of stale) {
+    const g = 2 ** (zoom - img.dataset.z);
+    const x0 = Math.max(vx0, Math.floor(img.dataset.x * g)), x1 = Math.min(vx1, Math.ceil((+img.dataset.x + 1) * g) - 1);
+    const y0 = Math.max(vy0, Math.floor(img.dataset.y * g)), y1 = Math.min(vy1, Math.ceil((+img.dataset.y + 1) * g) - 1);
+    let covered = true; // une floue hors écran (x0 > x1) est couverte par définition
+    for (let x = x0; x <= x1 && covered; x++) {
+      for (let y = y0; y <= y1; y++) {
+        const t = document.getElementById(`t${zoom}_${x}_${y}`);
+        if (!t || !t.classList.contains('loaded')) { covered = false; break; }
+      }
+    }
+    if (covered) img.remove(); else kept++;
+  }
+  staleCount = kept;
+  if (!kept) clearTimeout(staleTimer);
 }
 
 function render() {
@@ -235,8 +277,6 @@ function render() {
   const x0 = Math.floor(ox / TILE) - 1, y0 = Math.floor(oy / TILE) - 1;
   const x1 = Math.floor((ox + vpw) / TILE) + 1, y1 = Math.floor((oy + vph) / TILE) + 1;
   const need = new Set();
-  let pending = 0;
-  const done = () => { if (--pending <= 0) removeStale(); };
   const frag = document.createDocumentFragment(); // insertion groupée -> une seule passe de layout
   for (let x = x0; x <= x1; x++) {
     for (let y = y0; y <= y1; y++) {
@@ -244,6 +284,9 @@ function render() {
       const id = `t${zoom}_${x}_${y}`;
       need.add(id);
       let img = document.getElementById(id);
+      if (img && img.classList.contains('stale')) { // retour au niveau d'une floue : déjà chargée, reprise telle quelle
+        img.classList.remove('stale'); img.style.zIndex = '2'; img.style.width = img.style.height = ''; staleCount--;
+      }
       if (!img) {
         img = new Image();
         img.id = id;
@@ -252,10 +295,11 @@ function render() {
         img.decoding = 'async';
         img.fetchPriority = 'high'; // tuiles visibles prioritaires sur les préchargements
         img.style.zIndex = '2';
+        img.dataset.z = zoom; img.dataset.x = x; img.dataset.y = y;
         const url = LAYERS[layerId].url(x, y, zoom);
-        let tries = 0, settled = false, fb = false, wd = 0;
+        let tries = 0, fb = false, wd = 0;
         const loaded = () => img.classList.contains('loaded');
-        const finish = () => { if (!settled) { settled = true; done(); } clearTimeout(wd); };
+        const finish = () => clearTimeout(wd);
         const fail = () => {
           // comble le trou avec la tuile parent (zoom-1) mise à l'échelle
           // (fond CSS, requête async qui ne bloque pas les autres tuiles)
@@ -274,29 +318,30 @@ function render() {
         };
         // chien de garde : une requête peut rester suspendue sans jamais lever 'error' (tuile grise figée)
         const arm = () => { clearTimeout(wd); wd = setTimeout(() => { if (!loaded()) fail(); }, 6000); };
-        pending++;
         img.addEventListener('load', () => {
           if (img.src.startsWith('data:')) return; // pixel transparent du fallback, pas la vraie tuile
           img.classList.add('loaded');
           img.classList.remove('fallback');
           img.style.backgroundImage = '';
           finish();
+          schedulePrune();
         });
         img.addEventListener('error', fail);
         img.src = url;
         arm();
         frag.appendChild(img);
       }
-      img.style.left = (x * TILE - ox) + 'px';
-      img.style.top = (y * TILE - oy) + 'px';
+      placeTile(img, ox, oy);
     }
   }
   if (frag.childNodes.length) mapEl.appendChild(frag);
   for (const img of [...mapEl.querySelectorAll('img.tile:not(.stale)')]) {
     if (!need.has(img.id)) img.remove();
   }
-  if (pending === 0) removeStale();
-  else { clearTimeout(staleTimer); staleTimer = setTimeout(removeStale, 1000); }
+  if (staleCount) {
+    for (const img of mapEl.querySelectorAll('img.tile.stale')) placeTile(img, ox, oy); // les floues suivent le déplacement
+    schedulePrune();
+  }
   for (const mk of markers) {
     const p = project(mk.lat, mk.lon);
     mk.el.style.left = p.x + 'px';

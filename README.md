@@ -58,6 +58,11 @@ MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
+### v1.4.5 — Plus de flash gris au zoom (2026-09-11)
+
+- Au zoom comme au dézoom, l'ancienne carte reste affichée, agrandie ou réduite, jusqu'à ce que chaque nouvelle tuile soit arrivée et fondue par-dessus. Avant, tout disparaissait au bout d'une seconde même si les tuiles n'étaient pas là, d'où un écran gris quand le réseau traîne
+- Deux zooms rapprochés ou un zoom suivi d'un déplacement gardent aussi le fond flou en place
+
 ### v1.4.4 — Revisites et démarrage plus légers (2026-09-08)
 
 - Le serveur envoie un ETag par fichier : au retour sur le site, le navigateur ne retélécharge plus l'application (2,4 Ko échangés au lieu de 53 Ko, réponses 304)
