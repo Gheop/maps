@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Mesure du « flash » au zoom : tuiles mockées avec un délai réseau, zoom de 2 niveaux à la
-molette, capture à intervalles, part de l'écran laissée au gris de fond (#e8e8e8).
-Usage : bench/flash.py http://127.0.0.1:18080 [délai_tuile_ms]"""
+"""Mesure du « flash » : tuiles mockées avec un délai réseau, geste (zoom ou changement de
+calque), captures à intervalles, part de l'écran laissée au gris de fond (#e8e8e8).
+Usage : bench/flash.py http://127.0.0.1:18080 [délai_tuile_ms] [zoom|layer]"""
 import asyncio, io, struct, sys, zlib
 sys.argv += ['1'] if len(sys.argv) < 3 else []
 import front
@@ -9,6 +9,7 @@ from playwright.async_api import async_playwright
 
 BASE = sys.argv[1].rstrip('/')
 DELAY = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else 1500
+SCENARIO = sys.argv[3] if len(sys.argv) > 3 else 'zoom'
 BG = (0xe8, 0xe8, 0xe8)
 
 
@@ -65,8 +66,12 @@ async def main():
         await page.goto(f'{BASE}/{front.VIEW}', wait_until='load')
         await page.wait_for_timeout(DELAY + 1500)  # 1er niveau entièrement chargé
         base = grey_share(await page.screenshot(clip={'x': 0, 'y': 0, 'width': 1280, 'height': 800}))
-        await page.mouse.move(640, 400)
-        for _ in range(2): await page.mouse.wheel(0, -100); await page.wait_for_timeout(30)  # 2 crans -> +2 niveaux
+        if SCENARIO == 'layer':  # bascule Plan -> Relief, même géographie, autre style
+            await page.click('#layers-current')
+            await page.click('#layers-list button[data-layer="relief"]')
+        else:
+            await page.mouse.move(640, 400)
+            for _ in range(2): await page.mouse.wheel(0, -100); await page.wait_for_timeout(30)  # 2 crans -> +2 niveaux
         shots = []  # capturer d'abord (rapide), décoder après : le décodage décalerait les instants
         t0 = asyncio.get_event_loop().time()
         for step in (300, 500, 700, 900, 1100, 1300, 1500, 1800, 2200, 2600, 3200):
@@ -75,9 +80,9 @@ async def main():
             shots.append((round((asyncio.get_event_loop().time() - t0) * 1000), await page.screenshot()))
         await browser.close()
     samples = [(ms, round(100 * grey_share(png), 1)) for ms, png in shots]
-    print(f'délai tuile {DELAY} ms ; gris avant zoom : {100 * base:.1f} %')
-    print('ms après zoom -> % écran gris : ' + ', '.join(f'{ms}:{g}' for ms, g in samples))
-    print(f'max gris pendant le zoom : {max(g for _, g in samples)} %')
+    print(f'scénario {SCENARIO} ; délai tuile {DELAY} ms ; gris avant geste : {100 * base:.1f} %')
+    print('ms après geste -> % écran gris : ' + ', '.join(f'{ms}:{g}' for ms, g in samples))
+    print(f'max gris pendant le geste : {max(g for _, g in samples)} %')
 
 if __name__ == "__main__":
     asyncio.run(main())

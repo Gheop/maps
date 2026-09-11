@@ -110,6 +110,7 @@ async def one_run(browser):
 
     cdp = await ctx.new_cdp_session(page)
     await cdp.send('Performance.enable')
+    await cdp.send('HeapProfiler.enable')
     await page.wait_for_timeout(500)  # anneau de préchargement posé, main thread au repos
     m0 = await metrics(cdp)
     # 12 pans de 320 px (dépassent PAN_COMMIT -> re-tuilage), en alternant les directions
@@ -127,6 +128,10 @@ async def one_run(browser):
         await page.mouse.wheel(0, d)
         await page.wait_for_timeout(250)
     await page.wait_for_timeout(600)
+    # Sans GC forcé, Nodes et JSHeapUsedSize comptent les nœuds détachés pas encore collectés :
+    # 288 à 1686 nœuds d'un run à l'autre sur un code identique. Après GC, la mesure est stable.
+    await cdp.send('HeapProfiler.collectGarbage')
+    await page.wait_for_timeout(300)
     m1 = await metrics(cdp)
     tiles = await page.evaluate("document.querySelectorAll('img.tile').length")
     delta = {k: (m1[k] - m0[k]) * 1000 for k in ('ScriptDuration', 'LayoutDuration', 'RecalcStyleDuration', 'TaskDuration')}

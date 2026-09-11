@@ -197,7 +197,7 @@ function prefetchAround() {
   for (let x = x0; x <= x1; x++) {
     for (let y = y0; y <= y1; y++) {
       if (x < 0 || y < 0 || x >= n || y >= n) continue;
-      if (document.getElementById(`t${zoom}_${x}_${y}`)) continue; // déjà rendue
+      if (document.getElementById(tileId(zoom, x, y))) continue; // déjà rendue
       const key = `${layerId}:${zoom}/${x}/${y}`;
       if (prefetched.has(key)) continue;
       prefetched.add(key);
@@ -205,6 +205,10 @@ function prefetchAround() {
     }
   }
 }
+
+// L'id porte le calque : au changement de calque le zoom ne bouge pas, et sans lui la
+// nouvelle tuile retrouverait l'ancienne par son id et garderait l'image du calque quitté.
+const tileId = (z, x, y) => `t${layerId}_${z}_${x}_${y}`;
 
 const STALE_MAX_DZ = 4;    // au-delà, une floue agrandie x16 n'est plus qu'une tache ; un dézoom rapide de 3-4 crans reste couvert
 const STALE_SAFETY = 6000; // filet de sécurité, aligné sur le chien de garde des tuiles
@@ -260,7 +264,7 @@ function pruneStale() {
     let covered = true; // une floue hors écran (x0 > x1) est couverte par définition
     for (let x = x0; x <= x1 && covered; x++) {
       for (let y = y0; y <= y1; y++) {
-        const t = document.getElementById(`t${zoom}_${x}_${y}`);
+        const t = document.getElementById(tileId(zoom, x, y));
         if (!t || !t.classList.contains('loaded')) { covered = false; break; }
       }
     }
@@ -281,7 +285,7 @@ function render() {
   for (let x = x0; x <= x1; x++) {
     for (let y = y0; y <= y1; y++) {
       if (x < 0 || y < 0 || x >= n || y >= n) continue;
-      const id = `t${zoom}_${x}_${y}`;
+      const id = tileId(zoom, x, y);
       need.add(id);
       let img = document.getElementById(id);
       if (img && img.classList.contains('stale')) { // retour au niveau d'une floue : déjà chargée, reprise telle quelle
@@ -416,11 +420,14 @@ export function addMarker(lat, lon) {
 
 export function setLayer(id) {
   if (!LAYERS[id]) return;
+  const fromZoom = zoom;
   layerId = id;
   zoomMax = LAYERS[id].max;
   buildZoomBar();
   if (zoom > zoomMax) { const c = getView(); zoom = zoomMax; cx = lonToPx(c.lon, zoom); cy = latToPx(c.lat, zoom); }
-  clearTiles();
+  // Même géographie, autre style : l'ancien calque reste en fond le temps que le nouveau
+  // charge, au lieu de vider l'écran (clearTiles laissait 97 % de gris pendant 1,5 s).
+  markStale(fromZoom);
   render();
   updateZoomBar();
   if (attrEl) attrEl.innerHTML = LAYERS[id].attr;

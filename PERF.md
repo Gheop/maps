@@ -55,7 +55,9 @@ go test -run xxx -bench . -benchmem -count 10 .   # benchs Go seuls
 
 Prérequis : Go, `ab` (apache-tools), Python 3 avec `playwright` et son Chromium.
 
-Deux artefacts du harnais à connaître : le tout premier Chromium lancé par un processus met parfois 2 s de plus à démarrer la carte (un run à froid > 1,5 s est refait, champ `retries`), et l'interception `context.route()` de Playwright désactive le cache HTTP, d'où la mesure de charge sans interception (tuiles bloquées via CDP).
+Trois artefacts du harnais à connaître : le tout premier Chromium lancé par un processus met parfois 2 s de plus à démarrer la carte (un run à froid > 1,5 s est refait, champ `retries`), l'interception `context.route()` de Playwright désactive le cache HTTP, d'où la mesure de charge sans interception (tuiles bloquées via CDP), et les compteurs de nœuds et de mémoire ne veulent rien dire sans `HeapProfiler.collectGarbage` préalable (288 à 1686 nœuds sur un code identique).
+
+`bench/flash.py <url> <délai_tuile_ms> [zoom|layer]` mesure la part de l'écran laissée au gris de fond pendant un zoom ou un changement de calque, avec des tuiles mockées volontairement lentes. Capturer toutes les images d'abord et décoder ensuite : décoder en ligne décale les instants et fait manquer la fenêtre du flash.
 
 ## 6. Surveiller
 
@@ -69,3 +71,6 @@ Deux artefacts du harnais à connaître : le tout premier Chromium lancé par un
 | Requêtes de tuiles au chargement | `bench/front.py` (`cold.tile_requests`) | > 225 → un rendu jeté est revenu |
 | Démarrage carte | `bench/front.py` (`warm.map_init_ms`, latence 100 ms) | > 360 ms → un aller-retour est revenu |
 | Coût pan/zoom | `bench/front.py` (`RecalcStyleCount`, `LayoutCount`) | +20 % → régression de rendu |
+| Rétention de tuiles | `bench/front.py` (`Nodes`, `JSHeapUsedMB`, après GC forcé) | > 260 nœuds ou > 1,2 Mo → floues non nettoyées |
+| Flash au zoom | `bench/flash.py <url> 1500 zoom` | max gris > 5 % → régression |
+| Flash au changement de calque | `bench/flash.py <url> 1500 layer` | max gris > 5 % → régression |

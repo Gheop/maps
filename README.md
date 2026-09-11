@@ -58,6 +58,10 @@ MIT, voir [LICENSE](LICENSE).
 
 ## Changelog
 
+### v1.4.6 — Changement de calque sans écran gris (2026-09-11)
+
+- Passer d'un calque à l'autre garde la carte précédente affichée en fond le temps que le nouveau style arrive, au lieu de vider l'écran. Même principe que le zoom en v1.4.5
+
 ### v1.4.5 — Plus de flash gris au zoom (2026-09-11)
 
 - Au zoom comme au dézoom, l'ancienne carte reste affichée, agrandie ou réduite, jusqu'à ce que chaque nouvelle tuile soit arrivée et fondue par-dessus. Avant, tout disparaissait au bout d'une seconde même si les tuiles n'étaient pas là, d'où un écran gris quand le réseau traîne
