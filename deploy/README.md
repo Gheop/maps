@@ -11,6 +11,9 @@ garde l'ancienne `maps:local`.
     podman save --format docker-archive maps:local | ssh gheop.com 'sudo k3s ctr images import - && sudo k3s ctr images tag --force localhost/maps:local docker.io/library/maps:local'
     ssh gheop.com 'sudo kubectl -n maps rollout restart deploy/maps && sudo kubectl -n maps rollout status deploy/maps'
 
+`k3s` et `kubectl` sont en NOPASSWD dans le sudoers de gheop.com : tout passe en
+ssh sans interaction (`sudo -n true` échoue, `true` n'est pas dans la liste).
+
 Vérif : `curl -sI https://maps.gheop.com/js/map.js | grep -i etag` doit répondre.
 
 ## Appliquer
